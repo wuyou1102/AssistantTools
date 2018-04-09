@@ -2,6 +2,7 @@
 __author__ = 'wuyou'
 import sys
 import wx
+from lib import Logger
 from lib.UserInterface import Frame
 
 reload(sys)
