@@ -2,9 +2,8 @@
 import wx
 from NotebookBase import NotebookBase
 from lib import Utility
+
 Logger = Utility.getLogger(__name__)
-
-
 
 class First(NotebookBase):
     def __init__(self, parent):
@@ -19,4 +18,5 @@ class First(NotebookBase):
     def on_start(self, event):
         Logger.info(self.name)
         Logger.debug(self.name)
+        Logger.info(Utility.Path.WORKSPACE)
 

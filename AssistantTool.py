@@ -2,13 +2,14 @@
 __author__ = 'wuyou'
 import sys
 import wx
-from lib import Logger
 from lib.UserInterface import Frame
+from lib import Utility
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
 if __name__ == "__main__":
+    Utility.print_config_value()
     app = wx.App()
     f = Frame()
     f.Show()

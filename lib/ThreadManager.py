@@ -1,7 +1,8 @@
 # -*- encoding:UTF-8 -*-
 import Logger
 import threading
-from os import popen
+import Utility
+Logger = Utility.getLogger(__name__)
 
 __thread_pool = dict()
 __work_type_list = ['Refresh']
