@@ -1,23 +1,25 @@
 # -*- encoding:UTF-8 -*-
-import Logger
+import lib.Logger
 import threading
-import Utility
-Logger = Utility.getLogger(__name__)
+import lib.Utility
+from lib.Config.Parameter import ErrorCode
+Logger = lib.Utility.getLogger(__name__)
 
 __thread_pool = dict()
 __work_type_list = ['Refresh']
 
 
 def append_work(**kwargs):
-    Logger.debug("t_mgr|Add work: %s" % kwargs)
+    lib.Logger.debug("t_mgr|Add work: %s" % kwargs)
     __parse_work(**kwargs)
 
 
-def __parse_work(type, **kwargs):
-    if type in __thread_pool.keys():
+def __parse_work(work_type, **kwargs):
+    if work_type in __thread_pool.keys():
         if __thread_pool.get(type).isAlive():
-            Logger.debug("t_mgr|Same work is already in process.")
-            return None
+            Logger.warn(ErrorCode.THREAD_EXIST.message)
+            return ErrorCode.THREAD_EXIST
+
 
 
 def __append_thread(**kwargs):
