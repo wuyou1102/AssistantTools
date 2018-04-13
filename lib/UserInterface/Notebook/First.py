@@ -17,6 +17,4 @@ class First(NotebookBase):
 
     def on_start(self, event):
         Logger.info(self.name)
-        Logger.debug(self.name)
-        Logger.info(Utility.Path.WORKSPACE)
 

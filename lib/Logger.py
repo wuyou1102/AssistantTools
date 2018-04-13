@@ -2,6 +2,9 @@
 import logging.config
 from Config.Path import LOG
 from os.path import join
+from time import time, localtime, strftime
+
+
 
 logging.config.dictConfig({
     'version': 1,
@@ -29,7 +32,7 @@ logging.config.dictConfig({
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'delay': True,
-            'filename': join(LOG, 'a.log'),
+            'filename': join(LOG, '%s.log' % strftime("%Y_%m_%d-%H_%M_%S", localtime(time()))),
             'formatter': 'verbose'
         }
     },
