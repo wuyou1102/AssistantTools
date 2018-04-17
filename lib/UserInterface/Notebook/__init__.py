@@ -1,7 +1,3 @@
-from First import First
-from Second import Second
-from Third import Third
+from OfflineTools import OfflineTools
 
-OFFLINE_TOOLS = [First, Second]
-ONLINE_TOOLS = [Second, Third]
-KPI_TOOLS = [Third, First]
+DISPLAY_PANEL = [OfflineTools]

@@ -12,14 +12,8 @@ class Frame(wx.Frame):
         wx.Frame.__init__(self, None, -1, title="Assistant Tool V0.0.1", size=(1440, 800))
         self.Center()
         notebook = wx.Notebook(self)
-        for table in Notebook.KPI_TOOLS:
+        for table in Notebook.DISPLAY_PANEL:
             table_page = table(parent=notebook)
             notebook.AddPage(table_page, table_page.name)
 
-        for table in Notebook.OFFLINE_TOOLS:
-            table_page = table(parent=notebook)
-            notebook.AddPage(table_page, table_page.name)
 
-        for table in Notebook.ONLINE_TOOLS:
-            table_page = table(parent=notebook)
-            notebook.AddPage(table_page, table_page.name)

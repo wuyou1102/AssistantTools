@@ -10,7 +10,7 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 if __name__ == "__main__":
-    Utility.print_config_value()
+    Utility.getLogger()
     app = wx.App()
     f = Frame()
     f.Show()

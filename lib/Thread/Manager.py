@@ -1,36 +1,61 @@
 # -*- encoding:UTF-8 -*-
 import threading
-from lib import Utility
+import logging
 from lib.Config.Parameter import ErrorCode
+import types
+from random import choice
 
-Logger = Utility.getLogger(__name__)
+Logger = logging.getLogger(__name__)
 
 __thread_pool = dict()
 
 
+def query_thread():
+    Logger.debug(msg="%-10s|%50s" % ("STATE", "NAME"))
+    for k, v in __thread_pool.items():
+        Logger.debug(msg="%-10s|%50s" % ("RUNNING" if v.isAlive() else "DONE", k))
+
+
 def append_work(target, allow_dupl=False, **kwargs):
-    if not Utility.isfunction(target):
+    query_thread()
+    if not isinstance(target, types.FunctionType):
         Logger.error(ErrorCode.TARGET_NOT_FUNCTION.MSG)
         return False
-    if work_type in __thread_pool.keys():
-        if __thread_pool.get(work_type).isAlive():
-            Logger.warn(ErrorCode.THREAD_EXIST.message)
-            return ErrorCode.THREAD_EXIST
-    lib.Logger.debug("t_mgr|Add work: %s" % kwargs)
+    if allow_dupl:
+        return __append_thread_duplicate(target=target, **kwargs)
+    else:
+        return __append_thread(target=target, **kwargs)
 
 
+def __append_thread_duplicate(target, **kwargs):
+    def add_suffix(name):
+        name += ':'
+        for x in range(20):
+            name += choice('0123456789ABCDEF')
+        return name
+
+    name = kwargs.get('name', target.__name__)
+    name = add_suffix(name)
+    return __start_thread(target=target, name=name, **kwargs)
 
 
-def __append_thread(work_type, func, **kwargs):
-    name = kwargs.get('name')
-    t = threading.Thread(target=func, kwargs=kwargs)
+def __append_thread(target, **kwargs):
+    name = kwargs.get('name', target.__name__)
+    _thread = __thread_pool.get(name)
+    if _thread and _thread.isAlive():
+        Logger.warn(ErrorCode.TARGET_ALREADY_EXIST)
+        return False
+    return __start_thread(target=target, name=name, **kwargs)
+
+
+def __start_thread(target, name, **kwargs):
+    t = threading.Thread(target=target, kwargs=kwargs)
     t.setDaemon(True)
     __thread_pool[name] = t
     t.start()
+    Logger.debug(msg="%-10s|%50s" % ("STARTED", name))
+    return True
 
 
 if __name__ == '__main__':
-    def add():
-        return False
-    print add.__name__
-    append_work(target=add)
+    pass

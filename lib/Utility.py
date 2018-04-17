@@ -7,7 +7,7 @@ from time import time, localtime, strftime
 __Logger = getLogger(__name__)
 __builtin_attr_list = ['__doc__', '__file__', '__name__', '__package__', '__builtins__']
 
-
+  
 def print_config_value():
     def print_attributes(_class):
         __Logger.debug(_class.__name__)
@@ -17,7 +17,6 @@ def print_config_value():
             if attr_name in __builtin_attr_list or isfunction(attribute) or ismodule(attribute) or isclass(attribute):
                 continue
             __Logger.debug("%-20s: %s" % (attr_name, attribute))
-
     print_attributes(Path)
     print_attributes(Parameter)
 
