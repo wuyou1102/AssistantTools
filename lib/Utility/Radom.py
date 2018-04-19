@@ -1,2 +1,1 @@
-def aaa():
-    pass
+from time import time, localtime, strftime

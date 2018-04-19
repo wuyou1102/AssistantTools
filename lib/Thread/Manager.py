@@ -18,7 +18,7 @@ def query_thread():
 
 def append_work(target, allow_dupl=False, **kwargs):
     query_thread()
-    if not isinstance(target, types.FunctionType):
+    if not isinstance(target, types.FunctionType) and not isinstance(target, types.MethodType):
         Logger.error(ErrorCode.TARGET_NOT_FUNCTION.MSG)
         return False
     if allow_dupl:
@@ -33,7 +33,6 @@ def __append_thread_duplicate(target, **kwargs):
         for x in range(20):
             name += choice('0123456789ABCDEF')
         return name
-
     name = kwargs.get('name', target.__name__)
     name = add_suffix(name)
     return __start_thread(target=target, name=name, **kwargs)

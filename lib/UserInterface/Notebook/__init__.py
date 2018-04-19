@@ -1,3 +1,3 @@
 from OfflineTools import OfflineTools
-
-DISPLAY_PANEL = [OfflineTools]
+from OnlineTools import OnlineTools
+DISPLAY_PANEL = [OfflineTools,OnlineTools]

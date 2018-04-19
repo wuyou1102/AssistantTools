@@ -13,3 +13,4 @@ class NotebookBase(wx.Panel):
     def name(self):
         return self._name
 
+
