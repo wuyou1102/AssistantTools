@@ -42,8 +42,6 @@ class OfflineTools(NotebookBase):
                     line_num += 1
                     data = [True, line, line_num]
                     CallAfter(self.data_ctrl.AppendItem, data)
-                    if line_num % 999 == 0:
-                        time.sleep(0.1)
 
         log_file = self.log_picker.GetPath()
         if Utility.exists(log_file):
