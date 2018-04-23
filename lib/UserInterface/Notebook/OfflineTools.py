@@ -39,11 +39,16 @@ class OfflineTools(NotebookBase):
         self.SetSizer(MainSizer)
 
     def __analysis_log(self, event):
+        print time.time()
+
         def analysis(log_file):
-            for log in Log(log_file,[AirMessage.trace_pattern]):
-                data = [log[1], log[2], log[3], log[4], log[5], log[6]]
+            count = 0
+            for log in Log(log_file, [AirMessage.trace_pattern]):
+                count += 1
+                data = [count, log[2], log[3], log[4], log[5], log[6]]
                 CallAfter(self.DVLC.AppendItem, data)
             self.analysis_button.Enable()
+            print time.time()
 
         self.analysis_button.Disable()
         log_file = self.log_picker.GetPath()
@@ -81,11 +86,10 @@ class Log(object):
         return None, None
 
     def next(self):
-        print 's'
         if self.__current_number < self.__length:
-            start_line, end_line = self.find_log(self.__current_number)
+            start_line, end_line = self.__find_log(self.__current_number)
             if not start_line or not end_line:
                 raise StopIteration()
             self.__current_number = end_line + 1
-            yield self.__lines[start_line:end_line]
+            return self.__lines[start_line:end_line]
         raise StopIteration()
