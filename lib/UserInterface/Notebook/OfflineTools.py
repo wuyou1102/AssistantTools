@@ -32,7 +32,7 @@ class OfflineTools(NotebookBase):
         self.DVLC.AppendTextColumn(u"消息名")
         self.DVLC.AppendTextColumn(u"消息源")
         self.DVLC.AppendTextColumn(u"目标源")
-        self.DVLC.AppendProgressColumn(u"信号")
+        self.DVLC.AppendTextColumn(u"信号")
         LogAnalysisSizer.Add(PickerSizer, 0, wx.EXPAND)
         LogAnalysisSizer.Add(self.DVLC, 1, wx.EXPAND | wx.ALL, 1)
         MainSizer.Add(LogAnalysisSizer, 1, wx.EXPAND, 5)
@@ -40,17 +40,10 @@ class OfflineTools(NotebookBase):
 
     def __analysis_log(self, event):
         def analysis(log_file):
-
-            with open(log_file) as mLog:
-                lines = mLog.readlines()
-            split_logs = self.__split_log(lines, [AirMessage.trace_pattern])
-            for log in split_logs:
-                first = lines[log[0]]
-                data = [first[1], first[2], first[3], first[4], first[5], first[6]]
+            for log in Log(log_file,[AirMessage.trace_pattern]):
+                data = [log[1], log[2], log[3], log[4], log[5], log[6]]
                 CallAfter(self.DVLC.AppendItem, data)
-
             self.analysis_button.Enable()
-
 
         self.analysis_button.Disable()
         log_file = self.log_picker.GetPath()
@@ -60,47 +53,39 @@ class OfflineTools(NotebookBase):
             Logger.warn('\"%s\" does not exist.' % log_file)
             self.analysis_button.Enable()
 
-    @staticmethod
-    def __split_log(lines, patterns):
-        def find_end(s_number, e_pattern):
-            for current_number in xrange(s_number, length):
-                line = lines[current_number]
-                if re.search(e_pattern, line):
-                    return s_number, current_number
-            return s_number, None
-
-        def find_log(s_number):
-            for current_number in xrange(s_number, length):
-                line = lines[current_number]
-                for s_pattern, e_pattern in patterns:
-                    if re.search(s_pattern, line):
-                        return find_end(s_number=current_number, e_pattern=e_pattern)
-            return None, None
-
-        length = len(lines)
-        logs = list()
-        line_number = 0
-        while line_number < length:
-            start_line, end_line = find_log(line_number)
-            if not start_line or not end_line:
-                break
-            line_number = end_line + 1
-            logs.append((start_line, end_line))
-        return logs
-
 
 class Log(object):
-    def __init__(self, path):
+    def __init__(self, path, patterns):
         with open(path) as mLog:
-            lines = mLog.readlines()
+            self.__lines = mLog.readlines()
+        self.__length = len(self.__lines)
+        self.__patterns = patterns
+        self.__current_number = 0
 
     def __iter__(self):
         return self
 
+    def __find_end(self, s_number, e_pattern):
+        for current_number in xrange(s_number, self.__length):
+            line = self.__lines[current_number]
+            if re.search(e_pattern, line):
+                return s_number, current_number
+        return s_number, None
+
+    def __find_log(self, s_number):
+        for current_number in xrange(s_number, self.__length):
+            line = self.__lines[current_number]
+            for s_pattern, e_pattern in self.__patterns:
+                if re.search(s_pattern, line):
+                    return self.__find_end(s_number=current_number, e_pattern=e_pattern)
+        return None, None
+
     def next(self):
-        if self.n < self.max:
-            r = self.b
-            self.a, self.b = self.b, self.a + self.b
-            self.n = self.n + 1
-            return r
+        print 's'
+        if self.__current_number < self.__length:
+            start_line, end_line = self.find_log(self.__current_number)
+            if not start_line or not end_line:
+                raise StopIteration()
+            self.__current_number = end_line + 1
+            yield self.__lines[start_line:end_line]
         raise StopIteration()
