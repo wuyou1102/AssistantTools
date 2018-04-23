@@ -42,16 +42,15 @@ class OfflineTools(NotebookBase):
         print time.time()
 
         def analysis(log_file):
-            count = 0
-            for log in self.__yield_log(log_file, [AirMessage.trace_pattern]):
-                #print log
+            def parse(block):
+                first_line = block[0]
+                name = re.findall(AirMessage.trace_pattern[0], first_line)[0]
+                return name,name,name,name,name,name
 
-                count += 1
-                with open('%s.txt'%count,'w') as w_file:
-                    for l in log:
-                        w_file.write(l)
+            for log in self.__yield_log(log_file, [AirMessage.trace_pattern]):
+                data = parse(log)
                 # data = [count, log[2], log[3], log[4], log[5], log[6]]
-                # CallAfter(self.DVLC.AppendItem, data)
+                CallAfter(self.DVLC.AppendItem, data)
             self.analysis_button.Enable()
             print time.time()
 
@@ -78,7 +77,6 @@ class OfflineTools(NotebookBase):
             for line in mLog:
                 block.append(line)
                 if re.search(pattern, line):
-                    block.append(line)
                     return True
             return False
 
@@ -88,37 +86,38 @@ class OfflineTools(NotebookBase):
                 if block:
                     yield block
 
-    class Log(object):
-        def __init__(self, path, patterns):
-            with open(path) as mLog:
-                self.__lines = mLog.readlines()
-            self.__length = len(self.__lines)
-            self.__patterns = patterns
-            self.__current_number = 0
 
-        def __iter__(self):
-            return self
+class Log(object):
+    def __init__(self, path, patterns):
+        with open(path) as mLog:
+            self.__lines = mLog.readlines()
+        self.__length = len(self.__lines)
+        self.__patterns = patterns
+        self.__current_number = 0
 
-        def __find_end(self, s_number, e_pattern):
-            for current_number in xrange(s_number, self.__length):
-                line = self.__lines[current_number]
-                if re.search(e_pattern, line):
-                    return s_number, current_number
-            return s_number, None
+    def __iter__(self):
+        return self
 
-        def __find_log(self, s_number):
-            for current_number in xrange(s_number, self.__length):
-                line = self.__lines[current_number]
-                for s_pattern, e_pattern in self.__patterns:
-                    if re.search(s_pattern, line):
-                        return self.__find_end(s_number=current_number, e_pattern=e_pattern)
-            return None, None
+    def __find_end(self, s_number, e_pattern):
+        for current_number in xrange(s_number, self.__length):
+            line = self.__lines[current_number]
+            if re.search(e_pattern, line):
+                return s_number, current_number
+        return s_number, None
 
-        def next(self):
-            if self.__current_number < self.__length:
-                start_line, end_line = self.__find_log(self.__current_number)
-                if not start_line or not end_line:
-                    raise StopIteration()
-                self.__current_number = end_line + 1
-                return self.__lines[start_line:end_line]
-            raise StopIteration()
+    def __find_log(self, s_number):
+        for current_number in xrange(s_number, self.__length):
+            line = self.__lines[current_number]
+            for s_pattern, e_pattern in self.__patterns:
+                if re.search(s_pattern, line):
+                    return self.__find_end(s_number=current_number, e_pattern=e_pattern)
+        return None, None
+
+    def next(self):
+        if self.__current_number < self.__length:
+            start_line, end_line = self.__find_log(self.__current_number)
+            if not start_line or not end_line:
+                raise StopIteration()
+            self.__current_number = end_line + 1
+            return self.__lines[start_line:end_line]
+        raise StopIteration()
