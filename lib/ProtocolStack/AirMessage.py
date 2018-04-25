@@ -3,10 +3,11 @@ import six
 from re import compile
 
 __trace_begin_pattern = compile(r' Trace <(.*?)> air message begin ')
+# __trace_begin_pattern = compile(r' Trace <(.*?)> air message end ')
 __trace_end_pattern = compile(r' Trace <(.*?)> air message end ')
 trace_pattern = (__trace_begin_pattern, __trace_end_pattern)
-__tdace_begin_pattern = compile(r' Tdace <(.*?)> air message begin ')
-__tdace_end_pattern = compile(r' Tdace <(.*?)> air message end ')
+__tdace_begin_pattern = compile(r' Print e2e msg header information start ')
+__tdace_end_pattern = compile(r' Print e2e msg header information end ')
 tdace_pattern = (__tdace_begin_pattern, __tdace_end_pattern)
 
 
