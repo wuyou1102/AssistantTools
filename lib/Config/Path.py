@@ -23,4 +23,4 @@ REPOSITORY = _makedirs(WORKSPACE, 'repository')
 RESOURCE = _makedirs(WORKSPACE, 'resource')
 LOG = _makedirs(WORKSPACE, 'log')
 
-EXE_NOTEPAD = join(RESOURCE, 'notepad++', 'notepad++.exe')
+EXE_NOTEPAD = join(RESOURCE, 'notepad', 'notepad++.exe')

@@ -8,6 +8,7 @@ from wx import dataview as DV
 from lib.ProtocolStack import AirMessage
 import re
 from lib.UserInterface.Dialog import AirMessageDialog
+from os import system
 
 Logger = Utility.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class OfflineTools(NotebookBase):
     def __init__(self, parent):
         NotebookBase.__init__(self, parent=parent, name="OFFLINE")
         self.__log_data = dict()
-        self.__file_mapping_line = dict()
+        self.__line_mapping_file = dict()
         self.__log_count = 0
 
         MainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -39,17 +40,13 @@ class OfflineTools(NotebookBase):
 
         PickerSizer.Add(self.log_list_box, 2, wx.EXPAND | wx.ALL, 1)
         PickerSizer.Add(ButtonSizer, 1, wx.ALL, 1)
-        self.DVLC = DV.DataViewListCtrl(self, wx.ID_ANY)
-
+        self.DVLC = DV.DataViewListCtrl(self, id=wx.ID_ANY, style=DV.DV_VERT_RULES | DV.DV_ROW_LINES)
         self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_right_click)
         self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_ACTIVATED, self.double_click_on_filter_item)
+        self.DVLC.AppendTextColumn(u"#", width=40, align=wx.ALIGN_CENTER)
+        self.DVLC.AppendTextColumn(u"行号", width=60, align=wx.ALIGN_CENTER)
+        self.DVLC.AppendTextColumn(u"消息名", width=200, align=wx.ALIGN_CENTER)
 
-        self.DVLC.AppendTextColumn(u"时间")
-        self.DVLC.AppendTextColumn(u"优先级")
-        self.DVLC.AppendTextColumn(u"消息名")
-        self.DVLC.AppendTextColumn(u"消息源")
-        self.DVLC.AppendTextColumn(u"目标源")
-        self.DVLC.AppendTextColumn(u"信号")
         LogAnalysisSizer.Add(PickerSizer, 0, wx.EXPAND)
         LogAnalysisSizer.Add(self.DVLC, 1, wx.EXPAND | wx.ALL, 1)
         MainSizer.Add(LogAnalysisSizer, 1, wx.EXPAND, 5)
@@ -79,14 +76,19 @@ class OfflineTools(NotebookBase):
     def __analysis_log(self, event):
         def analysis(files):
             def parse(block):
-                first_line = block[0]
-                name = re.findall(AirMessage.trace_pattern[0], first_line)[0]
-                return name, name, name, name, name, name
+                line_number = block[0]
+                title = block[1]
+                try:
+                    name = re.findall(AirMessage.trace_pattern[0], title)[0]
+                except Exception:
+                    name = 'e2e'
+                return [line_number, name]
 
             print time.time()
             for log in self.yield_log(files, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
                 self.__insert_log_data(data=log)
-                data = [self.__log_count, log[0], 3, 4, 5, 6]
+                data = [self.__log_count]
+                data += parse(log)
                 CallAfter(self.DVLC.AppendItem, data)
             self.analysis_button.Enable()
             print time.time()
@@ -105,17 +107,33 @@ class OfflineTools(NotebookBase):
         dialog.Show()
 
     def on_right_click(self, event):
-        menu = wx.Menu()
-        menu.Append(1, 'Detail')
-        self.PopupMenu(menu)
-        menu.Destroy()
+        if self.DVLC.GetSelectedRow() > -1:
+            menu = wx.Menu()
+            menu.Append(500, '在文件中打开')
+            self.Bind(wx.EVT_MENU, self.__open_in_file, id=500)
+            self.PopupMenu(menu)
+            menu.Destroy()
+
+    def __open_in_file(self, event):
+        line_number = self.DVLC.GetValue(self.DVLC.GetSelectedRow(), 1)
+
+        def find_in_file(number):
+            keys = self.__line_mapping_file.keys()
+            keys.sort()
+            number = int(number)
+            if number > max(keys):
+                return number - max(keys), self.__line_mapping_file.get(max(keys))
+
+        line_number, log_file = find_in_file(line_number)
+        cmd = '{0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
+        system(cmd)
 
     def __insert_log_data(self, data):
         self.__log_data[self.__log_count] = data
         self.__log_count += 1
 
     def __clear_log_data(self):
-        self.__file_mapping_line.clear()
+        self.__line_mapping_file.clear()
         self.__log_data.clear()
         self.__log_count = 0
         self.DVLC.DeleteAllItems()
@@ -123,8 +141,7 @@ class OfflineTools(NotebookBase):
     def yield_line(self, files):
         counter = [0]
         for file in files:
-            self.__file_mapping_line[file] = counter[0]
-            print self.__file_mapping_line
+            self.__line_mapping_file[counter[0]] = file
             with open(file) as mfile:
                 for line in mfile:
                     counter[0] = counter[0] + 1
