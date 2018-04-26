@@ -1,7 +1,9 @@
+from os.path import join
+from os.path import exists
+from os import makedirs as __makedirs
+
+
 def _makedirs(path, *paths):
-    from os.path import join
-    from os.path import exists
-    from os import makedirs as __makedirs
     p = join(path, *paths)
     if not exists(p):
         __makedirs(p)
@@ -20,3 +22,5 @@ WORKSPACE = 'D:\AssistantTools'
 REPOSITORY = _makedirs(WORKSPACE, 'repository')
 RESOURCE = _makedirs(WORKSPACE, 'resource')
 LOG = _makedirs(WORKSPACE, 'log')
+
+EXE_NOTEPAD = join(RESOURCE, 'notepad++', 'notepad++.exe')

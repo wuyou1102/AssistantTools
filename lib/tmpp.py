@@ -1,18 +1,13 @@
-class Fab(object):
-    def __init__(self, max):
-        self.max = max
-        self.n, self.a, self.b = 0, 0, 1
+import os
+import time
+import Utility
 
-    def __iter__(self):
-        return self
+p = 'C:\Users\dell\Desktop\log\\vvv'
+files = os.listdir(p)
+a = time.time()
+import random
 
-    def next(self):
-        if self.n < self.max:
-            r = self.b
-            self.a, self.b = self.b, self.a + self.b
-            self.n = self.n + 1
-            return r
-        raise StopIteration()
-
-for n in Fab(5):
-    print n
+for f in files:
+    a += random.randint(500, 1000)
+    d = Utility.get_timestamp(time_fmt='%Y_%m_%d-%H_%M_%S', t=a)
+    os.rename(os.path.join(p, f), os.path.join(p, '%s.log' % d))

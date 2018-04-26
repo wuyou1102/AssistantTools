@@ -16,26 +16,34 @@ class OfflineTools(NotebookBase):
     def __init__(self, parent):
         NotebookBase.__init__(self, parent=parent, name="OFFLINE")
         self.__log_data = dict()
+        self.__file_mapping_line = dict()
         self.__log_count = 0
 
         MainSizer = wx.BoxSizer(wx.VERTICAL)
 
         LogAnalysisSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "LogAnalysis"), wx.VERTICAL)
         PickerSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.log_picker = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, "Select a file",
-                                            "Log files (*.log)|*.log|All files (*.*)|*.*", wx.DefaultPosition,
-                                            wx.DefaultSize, wx.FLP_DEFAULT_STYLE)
-        self.log_picker.SetPath("C:\Users\dell\Desktop\Serial-COM9111617serial-com9.log")
+        ButtonSizer = wx.BoxSizer(wx.VERTICAL)
+        self.log_list_box = wx.ListBox(self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
+                                       style=wx.LB_NEEDED_SB | wx.LB_SINGLE)
+        self.log_list_box.Bind(wx.EVT_LISTBOX_DCLICK, self.double_click_on_logfile_item)
+        self.browse_button = wx.Button(self, wx.ID_ANY, "Browse", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.browse_button.Bind(wx.EVT_BUTTON, self.__browse_log)
+        self.clear_button = wx.Button(self, wx.ID_ANY, "Clear", wx.DefaultPosition, wx.DefaultSize, 0)
         self.analysis_button = wx.Button(self, wx.ID_ANY, "Analysis", wx.DefaultPosition, wx.DefaultSize, 0)
         self.analysis_button.Bind(wx.EVT_BUTTON, self.__analysis_log)
-        PickerSizer.Add(self.log_picker, 1, wx.ALL, 1)
-        PickerSizer.Add(self.analysis_button, 0, wx.ALL, 1)
 
+        ButtonSizer.Add(self.browse_button, 0, wx.ALL, 1)
+        ButtonSizer.Add(self.analysis_button, 0, wx.ALL, 1)
+        ButtonSizer.Add(self.clear_button, 0, wx.ALL, 1)
+
+        PickerSizer.Add(self.log_list_box, 2, wx.EXPAND | wx.ALL, 1)
+        PickerSizer.Add(ButtonSizer, 1, wx.ALL, 1)
         self.DVLC = DV.DataViewListCtrl(self, wx.ID_ANY)
 
         self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_right_click)
-        self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_ACTIVATED, self.on_double_click)
-        DV.DATAVIEW_CELL_INERT
+        self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_ACTIVATED, self.double_click_on_filter_item)
+
         self.DVLC.AppendTextColumn(u"时间")
         self.DVLC.AppendTextColumn(u"优先级")
         self.DVLC.AppendTextColumn(u"消息名")
@@ -47,16 +55,36 @@ class OfflineTools(NotebookBase):
         MainSizer.Add(LogAnalysisSizer, 1, wx.EXPAND, 5)
         self.SetSizer(MainSizer)
 
+    def __browse_log(self, event):
+        dlg = wx.FileDialog(self,
+                            message="Select logs",
+                            wildcard="Log files (*.log)|*.log|All files (*.*)|*.*",
+                            defaultDir="",
+                            style=wx.FD_MULTIPLE
+                            )
+        if dlg.ShowModal() == wx.ID_OK:
+            for log_path in dlg.GetPaths():
+                if log_path not in self.log_list_box.Items:
+                    try:
+                        Utility.convert_timestamp(str=Utility.basename(log_path), time_fmt='%Y_%m_%d-%H_%M_%S.log')
+                        self.log_list_box.Append(log_path)
+                    except ValueError:
+                        Logger.error("\"{0}\" is not a validated log name. Please check.".format(log_path))
+                        msg_dlg = wx.MessageDialog(self, u"\"{0}\"\n不符合规范，请手动确认文件并修改文件名后再添加。".format(
+                            log_path), u"   文件名错误", wx.OK | wx.ICON_ERROR)
+                        if msg_dlg.ShowModal() == wx.ID_OK:
+                            msg_dlg.Destroy()
+        dlg.Destroy()
+
     def __analysis_log(self, event):
-        def analysis(log_file):
+        def analysis(files):
             def parse(block):
                 first_line = block[0]
                 name = re.findall(AirMessage.trace_pattern[0], first_line)[0]
                 return name, name, name, name, name, name
 
             print time.time()
-
-            for log in self.__yield_log(log_file, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
+            for log in self.yield_log(files, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
                 self.__insert_log_data(data=log)
                 data = [self.__log_count, log[0], 3, 4, 5, 6]
                 CallAfter(self.DVLC.AppendItem, data)
@@ -64,15 +92,14 @@ class OfflineTools(NotebookBase):
             print time.time()
 
         self.analysis_button.Disable()
-        log_file = self.log_picker.GetPath()
-        if Utility.exists(log_file):
-            self.__clear_log_data()
-            Utility.append_work(target=analysis, log_file=log_file)
-        else:
-            Logger.warn('\"%s\" does not exist.' % log_file)
-            self.analysis_button.Enable()
+        log_files = self.log_list_box.Items
+        self.__clear_log_data()
+        Utility.append_work(target=analysis, files=log_files)
 
-    def on_double_click(self, event):
+    def double_click_on_logfile_item(self, event):
+        self.log_list_box.Delete(self.log_list_box.GetSelection())
+
+    def double_click_on_filter_item(self, event):
         row = self.DVLC.GetSelectedRow()
         dialog = AirMessageDialog(self.__log_data.get(row))
         dialog.Show()
@@ -88,40 +115,45 @@ class OfflineTools(NotebookBase):
         self.__log_count += 1
 
     def __clear_log_data(self):
-        print self.__log_data
+        self.__file_mapping_line.clear()
         self.__log_data.clear()
         self.__log_count = 0
-        print self.__log_data
         self.DVLC.DeleteAllItems()
 
-    @staticmethod
-    def __yield_log(path, patterns):
-        def find_start(line):
+    def yield_line(self, files):
+        counter = [0]
+        for file in files:
+            self.__file_mapping_line[file] = counter[0]
+            print self.__file_mapping_line
+            with open(file) as mfile:
+                for line in mfile:
+                    counter[0] = counter[0] + 1
+                    yield counter[0], line
+
+    def yield_log(self, file_paths, patterns):
+        def find_start(line_num, line):
             for s_pattern, e_pattern in patterns:
                 if re.search(s_pattern, line):
-                    print counter[0]
                     log_block = list()
+                    log_block.append(line_num)
                     log_block.append(line)
                     if re.search(e_pattern, line) or find_end(pattern=e_pattern, block=log_block):
                         return log_block
             return None
 
         def find_end(pattern, block):
-            for line in mLog:
-                counter[0] = counter[0] + 1
+            for line_number, line in mLog:
                 block.append(line)
                 if re.search(pattern, line):
-                    print counter[0]
                     return True
             return False
 
-        counter = [0]
-        with open(path) as mLog:
-            for line in mLog:
-                counter[0] = counter[0] + 1
-                block = find_start(line=line)
-                if block:
-                    yield block
+        mLog = self.yield_line(files=file_paths)
+
+        for line_number, line in mLog:
+            block = find_start(line_num=line_number, line=line)
+            if block:
+                yield block
 
 # class Log(object):
 #     def __init__(self, path, patterns):
