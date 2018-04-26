@@ -75,21 +75,9 @@ class OfflineTools(NotebookBase):
 
     def __analysis_log(self, event):
         def analysis(files):
-            def parse(block):
-                line_number = block[0]
-                title = block[1]
-                try:
-                    name = re.findall(AirMessage.trace_pattern[0], title)[0]
-                except Exception:
-                    name = 'e2e'
-                return [line_number, name]
-
             print time.time()
-            for log in self.yield_log(files, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
-                self.__insert_log_data(data=log)
-                data = [self.__log_count]
-                data += parse(log)
-                CallAfter(self.DVLC.AppendItem, data)
+            for row, log in self.yield_log(files, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
+                self.__insert_log_data(log=log, row=row)
             self.analysis_button.Enable()
             print time.time()
 
@@ -128,9 +116,18 @@ class OfflineTools(NotebookBase):
         cmd = '{0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
         system(cmd)
 
-    def __insert_log_data(self, data):
-        self.__log_data[self.__log_count] = data
+    def __insert_log_data(self, row, log):
+        def convert_data():
+            d = ['' for x in range(10)]
+            d[0] = self.__log_count + 1  # 第一位是log序号
+            d[1] = row  # 第二位log出现的行号
+            d[2] = log[0]  # 消息名
+
+            return d[:self.DVLC.GetColumnCount()]
+        data = convert_data()
+        self.__log_data[self.__log_count] = (data, log)
         self.__log_count += 1
+        CallAfter(self.DVLC.AppendItem, data)
 
     def __clear_log_data(self):
         self.__line_mapping_file.clear()
@@ -152,11 +149,11 @@ class OfflineTools(NotebookBase):
             for s_pattern, e_pattern in patterns:
                 if re.search(s_pattern, line):
                     log_block = list()
-                    log_block.append(line_num)
+                    start_row = line_num
                     log_block.append(line)
                     if re.search(e_pattern, line) or find_end(pattern=e_pattern, block=log_block):
-                        return log_block
-            return None
+                        return start_row, log_block
+            return None, None
 
         def find_end(pattern, block):
             for line_number, line in mLog:
@@ -166,11 +163,18 @@ class OfflineTools(NotebookBase):
             return False
 
         mLog = self.yield_line(files=file_paths)
-
         for line_number, line in mLog:
-            block = find_start(line_num=line_number, line=line)
-            if block:
-                yield block
+            row, block = find_start(line_num=line_number, line=line)
+            if row and block:
+                yield row, block
+
+    def parse_log(self, log):
+        def case_e2e_msg():
+            return None
+
+        first_line = None
+        if 'Print e2e msg header information start' in log[0]:
+            pass
 
 # class Log(object):
 #     def __init__(self, path, patterns):
