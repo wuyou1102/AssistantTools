@@ -4,7 +4,8 @@ from NotebookBase import NotebookBase
 from lib import Utility
 from wx import CallAfter
 import time
-from wx import dataview as DV
+from wx.lib.splitter import MultiSplitterWindow
+from ObjectListView import ObjectListView, ColumnDefn
 from lib.ProtocolStack import AirMessage
 import re
 from lib.UserInterface.Dialog import AirMessageDialog
@@ -25,6 +26,8 @@ class OfflineTools(NotebookBase):
         LogAnalysisSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "LogAnalysis"), wx.VERTICAL)
         PickerSizer = wx.BoxSizer(wx.HORIZONTAL)
         ButtonSizer = wx.BoxSizer(wx.VERTICAL)
+        SplitterSizer = wx.BoxSizer(wx.VERTICAL)
+
         self.log_list_box = wx.ListBox(self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
                                        style=wx.LB_NEEDED_SB | wx.LB_SINGLE)
         self.log_list_box.Bind(wx.EVT_LISTBOX_DCLICK, self.double_click_on_logfile_item)
@@ -40,18 +43,30 @@ class OfflineTools(NotebookBase):
 
         PickerSizer.Add(self.log_list_box, 2, wx.EXPAND | wx.ALL, 1)
         PickerSizer.Add(ButtonSizer, 1, wx.ALL, 1)
-        self.DVLC = DV.DataViewListCtrl(self, id=wx.ID_ANY, style=DV.DV_VERT_RULES | DV.DV_HORIZ_RULES)
-        self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_right_click)
-        self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_ACTIVATED, self.double_click_on_filter_item)
-        self.DVLC.AppendTextColumn(u"#", width=40, align=wx.ALIGN_CENTER)
-        self.DVLC.AppendTextColumn(u"行号", width=60, align=wx.ALIGN_CENTER)
-        self.DVLC.AppendTextColumn(u"消息名", width=200, align=wx.ALIGN_CENTER)
-        self.DVLC.AppendTextColumn(u"源", width=60, align=wx.ALIGN_CENTER)
-        self.DVLC.AppendTextColumn(u"目标", width=60, align=wx.ALIGN_CENTER)
 
+        SplitterWindow = MultiSplitterWindow(parent=self, style=wx.SP_LIVE_UPDATE)
+        SplitterWindow.SetOrientation(wx.VERTICAL)
+
+        SplitterPanel1 = wx.Panel(parent=SplitterWindow)
+
+        self.OLV = ObjectListView(SplitterPanel1, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
+        self.OLV.Bind(wx.EVT_CONTEXT_MENU, self.on_right_click)
+        self.DM = DataModule(ListView=self.OLV)
+        ListViewSizer = wx.BoxSizer(wx.VERTICAL)
+        ListViewSizer.Add(self.OLV, 1, wx.EXPAND)
+        SplitterPanel1.SetSizer(ListViewSizer)
+
+        SplitterPanel2 = wx.Panel(parent=SplitterWindow)
+        SplitterPanel2.SetBackgroundColour('#999983')
+
+        SplitterWindow.AppendWindow(SplitterPanel1)
+        SplitterWindow.AppendWindow(SplitterPanel2)
         LogAnalysisSizer.Add(PickerSizer, 0, wx.EXPAND)
-        LogAnalysisSizer.Add(self.DVLC, 1, wx.EXPAND | wx.ALL, 1)
-        MainSizer.Add(LogAnalysisSizer, 1, wx.EXPAND, 5)
+        # SplitterSizer.Add(SplitterWindow, wx.SizerFlags().Expand().Proportion(1).Border(wx.ALL, 5))
+        SplitterSizer.Add(SplitterWindow, 1, wx.EXPAND)
+        MainSizer.Add(LogAnalysisSizer, 0, wx.EXPAND, 5)
+        MainSizer.Add(SplitterSizer, 1, wx.EXPAND, 5)
+
         self.SetSizer(MainSizer)
 
     def __browse_log(self, event):
@@ -76,18 +91,22 @@ class OfflineTools(NotebookBase):
         dlg.Destroy()
 
     def __analysis_log(self, event):
-        def analysis(files):
-            print time.time()
-            for row, log in self.yield_log(files, [AirMessage.trace_patterns, AirMessage.e2e_patterns,
-                                                   AirMessage.NPR_patterns]):
-                self.__insert_log_data(log=log, row=row)
-            self.analysis_button.Enable()
-            print time.time()
-
         self.analysis_button.Disable()
         log_files = self.log_list_box.Items
-        self.__clear_log_data()
-        Utility.append_work(target=analysis, files=log_files)
+        Utility.append_work(target=self.DM.Analysis, files=log_files)
+
+        #
+        # def analysis(files):
+        #     print time.time()
+        #     for row, log in self.yield_log(files, [AirMessage.trace_patterns, AirMessage.e2e_patterns,
+        #                                            AirMessage.NPR_patterns]):
+        #         self.__insert_log_data(log=log, row=row)
+        #     self.analysis_button.Enable()
+        #     print time.time()
+        #
+        # self.analysis_button.Disable()
+        # log_files = self.log_list_box.Items
+        # self.__clear_log_data()
 
     def double_click_on_logfile_item(self, event):
         self.log_list_box.Delete(self.log_list_box.GetSelection())
@@ -98,7 +117,7 @@ class OfflineTools(NotebookBase):
         dialog.Show()
 
     def on_right_click(self, event):
-        if self.DVLC.GetSelectedRow() > -1:
+        if self.OLV.GetSelectedObject():
             menu = wx.Menu()
             menu.Append(500, '在文件中打开')
             self.Bind(wx.EVT_MENU, self.__open_in_file, id=500)
@@ -106,7 +125,9 @@ class OfflineTools(NotebookBase):
             menu.Destroy()
 
     def __open_in_file(self, event):
-        line_number = self.DVLC.GetValue(self.DVLC.GetSelectedRow(), 1)
+        line_number = self.OLV.GetSelectedObject()
+        print line_number
+        print line_number._id
 
         def find_in_file(number):
             keys = self.__line_mapping_file.keys()
@@ -213,41 +234,43 @@ class OfflineTools(NotebookBase):
             for line in log:
                 Logger.error(repr(line))
             Logger.error('=' * 50)
-# class Log(object):
-#     def __init__(self, path, patterns):
-#         with open(path) as mLog:
-#             self.__lines = mLog.readlines()
-#         self.__length = len(self.__lines)
-#         self.__patterns = patterns
-#         self.__current_number = 0
-#
-#     def __iter__(self):
-#         return self
-#
-#     def __find_end(self, s_number, e_pattern):
-#         for current_number in xrange(s_number, self.__length):
-#             line = self.__lines[current_number]
-#             if re.search(e_pattern, line):
-#                 return s_number, current_number
-#         return s_number, None
-#
-#     def __find_log(self, s_number):
-#         for current_number in xrange(s_number, self.__length):
-#             line = self.__lines[current_number]
-#             for s_pattern, e_pattern in self.__patterns:
-#                 if re.search(s_pattern, line):
-#                     return self.__find_end(s_number=current_number, e_pattern=e_pattern)
-#         return None, None
-#
-#     def next(self):
-#         if self.__current_number < self.__length:
-#             start_line, end_line = self.__find_log(self.__current_number)
-#             if not start_line or not end_line:
-#                 raise StopIteration()
-#             self.__current_number = end_line + 1
-#             return self.__lines[start_line:end_line]
-#         raise StopIteration()
-#
-# TODO LOG 颜色分级
-# TODO LOG 行号反查询文件
-# TODO 设置上下多少范围内
+
+
+class DataModule(object):
+    class Message(object):
+        def __init__(self, log):
+            self._id = Utility.randint(30, 100)
+            self._msg = Utility.randstr()
+            self._src = str(Utility.randint(0, 10))
+            self._dest = Utility.randint(10, 20)
+
+    def __init__(self, ListView):
+        self.list_view = ListView
+        self.__set_columns()
+        self.list_view.rowFormatter = self.__set_row_formatter
+
+    def Analysis(self, files):
+        for x in range(100):
+            self.list_view.AddObject(self.Message(log=files))
+
+    def Append(self, log):
+        pass
+
+    def __set_columns(self):
+        self.list_view.SetColumns(
+            [
+                ColumnDefn(title=u"No.", align="left", width=80, valueGetter='_no'),
+                ColumnDefn(title=u"Time", align="left", width=80, valueGetter='_time'),
+                ColumnDefn(title=u"Protocol", align="left", width=200, valueGetter='_prot'),
+                ColumnDefn(title=u"Source", align="center", width=80, valueGetter="_src"),
+                ColumnDefn(title=u"Dest.", align="center", width=80, valueGetter="_dest"),
+                ColumnDefn(title=u"Info", align="left", width=80, valueGetter="_info"),
+                # ColumnDefn("Mfg", "left", 180, "_dest")
+            ]
+        )
+
+    @staticmethod
+    def __set_row_formatter(list_view, item):
+
+        if item._dest > 15:
+            list_view.SetBackgroundColour(wx.Colour('#FFB90F'))
