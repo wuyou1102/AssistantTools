@@ -40,12 +40,14 @@ class OfflineTools(NotebookBase):
 
         PickerSizer.Add(self.log_list_box, 2, wx.EXPAND | wx.ALL, 1)
         PickerSizer.Add(ButtonSizer, 1, wx.ALL, 1)
-        self.DVLC = DV.DataViewListCtrl(self, id=wx.ID_ANY, style=DV.DV_VERT_RULES | DV.DV_ROW_LINES)
+        self.DVLC = DV.DataViewListCtrl(self, id=wx.ID_ANY, style=DV.DV_VERT_RULES | DV.DV_HORIZ_RULES)
         self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_right_click)
         self.DVLC.Bind(DV.EVT_DATAVIEW_ITEM_ACTIVATED, self.double_click_on_filter_item)
         self.DVLC.AppendTextColumn(u"#", width=40, align=wx.ALIGN_CENTER)
         self.DVLC.AppendTextColumn(u"行号", width=60, align=wx.ALIGN_CENTER)
         self.DVLC.AppendTextColumn(u"消息名", width=200, align=wx.ALIGN_CENTER)
+        self.DVLC.AppendTextColumn(u"源", width=60, align=wx.ALIGN_CENTER)
+        self.DVLC.AppendTextColumn(u"目标", width=60, align=wx.ALIGN_CENTER)
 
         LogAnalysisSizer.Add(PickerSizer, 0, wx.EXPAND)
         LogAnalysisSizer.Add(self.DVLC, 1, wx.EXPAND | wx.ALL, 1)
@@ -76,7 +78,8 @@ class OfflineTools(NotebookBase):
     def __analysis_log(self, event):
         def analysis(files):
             print time.time()
-            for row, log in self.yield_log(files, [AirMessage.trace_pattern, AirMessage.tdace_pattern]):
+            for row, log in self.yield_log(files, [AirMessage.trace_patterns, AirMessage.e2e_patterns,
+                                                   AirMessage.NPR_patterns]):
                 self.__insert_log_data(log=log, row=row)
             self.analysis_button.Enable()
             print time.time()
@@ -107,13 +110,14 @@ class OfflineTools(NotebookBase):
 
         def find_in_file(number):
             keys = self.__line_mapping_file.keys()
-            keys.sort()
+            keys.sort(reverse=True)
             number = int(number)
-            if number > max(keys):
-                return number - max(keys), self.__line_mapping_file.get(max(keys))
+            for key in keys:
+                if number > key:
+                    return number - key, self.__line_mapping_file.get(key)
 
         line_number, log_file = find_in_file(line_number)
-        cmd = '{0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
+        cmd = 'cmd /c start {0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
         system(cmd)
 
     def __insert_log_data(self, row, log):
@@ -121,9 +125,13 @@ class OfflineTools(NotebookBase):
             d = ['' for x in range(10)]
             d[0] = self.__log_count + 1  # 第一位是log序号
             d[1] = row  # 第二位log出现的行号
-            d[2] = log[0]  # 消息名
-
+            name, src, dest, _type = self.parse_log(log=log)
+            d[2] = name  # 消息名
+            d[3] = src  # 源
+            d[4] = dest  # 目标
+            d[5] = _type  # 类型
             return d[:self.DVLC.GetColumnCount()]
+
         data = convert_data()
         self.__log_data[self.__log_count] = (data, log)
         self.__log_count += 1
@@ -169,13 +177,42 @@ class OfflineTools(NotebookBase):
                 yield row, block
 
     def parse_log(self, log):
+        def case_npr_msg():
+            name = src = dest = _type = ''
+            name = Utility.find_in_string(pattern=AirMessage.NPR_begin_pattern, string=start_line)
+            return name, src, dest, _type
+
         def case_e2e_msg():
-            return None
+            name = src = dest = _type = ''
+            # name = 'e2e msg header information'
+            for line in log:
+                if 'dest_id      = ' in line:
+                    dest = Utility.find_in_string(pattern=AirMessage.dest_pattern, string=line)
+                elif 'src_id       =' in line:
+                    src = Utility.find_in_string(pattern=AirMessage.src_pattern, string=line)
+            _type = 'e2e'
+            return name, src, dest, _type
 
-        first_line = None
-        if 'Print e2e msg header information start' in log[0]:
-            pass
+        def case_air_msg():
+            name = src = dest = _type = ''
+            name = re.findall(AirMessage.trace_patterns[0], start_line)[0]
+            _type = 'air message'
+            return name, src, dest, _type
 
+        start_line = log[0]
+        if 'Print e2e msg header information start' in start_line:
+            return case_e2e_msg()
+        elif ' air message begin' in start_line:
+            return case_air_msg()
+        elif 'recv stack_primitive' in start_line:
+            return case_npr_msg()
+
+        else:
+            Logger.error('=' * 50)
+            Logger.error('Unknow type.Please check.')
+            for line in log:
+                Logger.error(repr(line))
+            Logger.error('=' * 50)
 # class Log(object):
 #     def __init__(self, path, patterns):
 #         with open(path) as mLog:
@@ -211,3 +248,6 @@ class OfflineTools(NotebookBase):
 #             return self.__lines[start_line:end_line]
 #         raise StopIteration()
 #
+# TODO LOG 颜色分级
+# TODO LOG 行号反查询文件
+# TODO 设置上下多少范围内
