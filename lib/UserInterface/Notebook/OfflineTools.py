@@ -54,7 +54,10 @@ class OfflineTools(NotebookBase):
         SplitterPanel1.SetSizer(ListViewSizer)
 
         SplitterPanel2 = wx.Panel(parent=SplitterWindow)
-        SplitterPanel2.SetBackgroundColour('#999983')
+        TextCtrlSizer = wx.BoxSizer(wx.VERTICAL)
+        self.text_ctrl = wx.TextCtrl(SplitterPanel2, -1, value="", style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL)
+        TextCtrlSizer.Add(self.text_ctrl, 1, wx.EXPAND)
+        SplitterPanel2.SetSizer(TextCtrlSizer)
 
         SplitterWindow.AppendWindow(SplitterPanel1)
         SplitterWindow.AppendWindow(SplitterPanel2)
@@ -92,7 +95,6 @@ class OfflineTools(NotebookBase):
 
     def __analysis_log(self, event):
         DM = DataModule(ListView=self.OLV, LogFiles=self.log_list_box.Items, Button=self.analysis_button)
-
         DM.Analysis()
 
     def double_click_on_logfile_item(self, event):
@@ -113,7 +115,12 @@ class OfflineTools(NotebookBase):
 
     def on_item_selected(self, event):
         obj = self.OLV.GetSelectedObject()
-        print obj._block
+        self.text_ctrl.SetValue("")
+        for line in obj._block:
+            try:
+                wx.CallAfter(self.text_ctrl.AppendText, text=line.strip('\r\n') + '\n')
+            except Exception:
+                print repr(line)
 
     def __open_in_file(self, event):
         obj = self.OLV.GetSelectedObject()

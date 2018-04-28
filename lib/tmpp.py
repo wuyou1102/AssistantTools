@@ -1,86 +1,124 @@
-# -*- coding:utf-8 -*-
 import wx
-from wx._core import BoxSizer, GridSizer
-from wx.lib.splitter import MultiSplitterWindow, MultiSplitterEvent
-from wx.lib.agw.fourwaysplitter import FourWaySplitter
+from ObjectListView import ObjectListView, ColumnDefn
+
+import Utility
 
 
+########################################################################
+class Book(object):
+    """
+    Model of the Book object
 
-class ProxyFrame(wx.ScrolledWindow):
+    Contains the following attributes:
+    'ISBN', 'Author', 'Manufacturer', 'Title'
+    """
+
+    # ----------------------------------------------------------------------
+    def __init__(self, title, author, isbn, mfg):
+        self.isbn = isbn
+        self.author = author
+        self.mfg = mfg
+        self.title = title
+
+
+########################################################################
+class MainPanel(wx.Panel):
+    # ----------------------------------------------------------------------
     def __init__(self, parent):
-        wx.ScrolledWindow.__init__(self, parent)
-        self.createWidget()
+        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+        self.products = [Book("wxPython in Action", "Robin Dunn",
+                              "1932394621", "Manning"),
+                         Book("Hello World", "Warren and Carter Sande",
+                              "1933988495", "Manning")
+                         ]
 
-    def createWidget(self):
-        self.proxy_split_mult = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE, size=(800, 450))
-        self.proxy_split_mult.SetMinimumPaneSize(10)  # 最小面板大小
+        self.dataOlv = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.setBooks()
 
-        self.proxy_split_top = wx.SplitterWindow(self.proxy_split_mult)  # 上结构
-        self.proxy_split_bottom = wx.SplitterWindow(self.proxy_split_mult)  # 下结构
+        # Allow the cell values to be edited when double-clicked
+        self.dataOlv.cellEditMode = ObjectListView.CELLEDIT_SINGLECLICK
 
-        ########## 结构上左右 ##########  
-        self.proxy_scrol_leftTop = wx.ScrolledWindow(self.proxy_split_top)
-        self.proxy_scrol_leftTop.SetBackgroundColour(wx.WHITE)
-        self.proxy_scrol_leftTop.SetScrollbars(10, 10, 400, 300)
-        self.proxy_scrol_leftTop.SetAutoLayout(1)
+        # create an update button
+        updateBtn = wx.Button(self, wx.ID_ANY, "Update OLV")
+        updateBtn.Bind(wx.EVT_BUTTON, self.updateControl)
 
-        self.proxy_scrol_rightTop = wx.ScrolledWindow(self.proxy_split_top)
-        self.proxy_scrol_rightTop.SetBackgroundColour(wx.BLACK)
+        # Create some sizers
+        mainSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.proxy_split_top.SetMinimumPaneSize(10)  # 最小面板大小
-        self.proxy_split_top.SplitVertically(self.proxy_scrol_leftTop, self.proxy_scrol_rightTop)  # 分割面板
-        self.proxy_split_top.SetSashGravity(0.5)
-        ########## 结构上左右 end ##########  
+        mainSizer.Add(self.dataOlv, 1, wx.ALL | wx.EXPAND, 5)
+        mainSizer.Add(updateBtn, 0, wx.ALL | wx.CENTER, 5)
+        self.SetSizer(mainSizer)
 
-        ########## 结构下左右 ##########  
-        self.proxy_scrol_leftBottom = wx.ScrolledWindow(self.proxy_split_bottom)
-        self.proxy_scrol_leftBottom.SetBackgroundColour(wx.WHITE)
-        self.proxy_scrol_rightBottom = wx.ScrolledWindow(self.proxy_split_bottom)
-        self.proxy_scrol_rightBottom.SetBackgroundColour(wx.BLACK)
+    def _ddd(self):
+        for x in range(10000):
+            wx.CallAfter(self.dataOlv.AddObject,
+                         Book(Utility.randstr(5), Utility.randstr(9), Utility.randstr(5), Utility.randstr(9)))
+            import time
+            time.sleep(0.05)
+            # ----------------------------------------------------------------------
 
-        self.proxy_split_bottom.SetMinimumPaneSize(10)  # 最小面板大小
-        self.proxy_split_bottom.SplitVertically(self.proxy_scrol_leftBottom, self.proxy_scrol_rightBottom)  # 分割面板
-        self.proxy_split_bottom.SetSashGravity(0.5)
-        ########## 结构下左右 end ##########  
+    def updateControl(self, event):
+        Utility.append_work(target=self._ddd)
 
-        self.proxy_split_mult.SplitHorizontally(self.proxy_split_top, self.proxy_split_bottom)  # 分割面板
-        self.proxy_split_mult.SetSashGravity(0.5)
+        # """
+        #
+        # """
+        # print "updating..."
+        # product_dict = [{"title": "Core Python Programming", "author": "Wesley Chun",
+        #                  "isbn": "0132269937", "mfg": "Prentice Hall"},
+        #                 {"title": "Python Programming for the Absolute Beginner",
+        #                  "author": "Michael Dawson", "isbn": "1598631128",
+        #                  "mfg": "Course Technology"},
+        #                 {"title": "Learning Python", "author": "Mark Lutz",
+        #                  "isbn": "0596513984", "mfg": "O'Reilly"}
+        #                 ]
+        # data = self.products + product_dict
+        # self.dataOlv.SetObjects(data)
 
-        self.SetScrollbars(10, 10, 400, 300)
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.proxy_split_mult, 1, flag=wx.EXPAND)  # 自动缩放
-        self.SetSizer(sizer)
+    # ----------------------------------------------------------------------
+    def setBooks(self, data=None):
+        self.dataOlv.SetColumns([
+            ColumnDefn("Title", "left", 220, "title"),
+            ColumnDefn("Author", "left", 200, "author"),
+            ColumnDefn("ISBN", "right", 100, "isbn"),
+            ColumnDefn("Mfg", "left", 180, "mfg")
+        ])
+
+        self.dataOlv.SetObjects(self.products)
 
 
+########################################################################
 class MainFrame(wx.Frame):
+    # ----------------------------------------------------------------------
     def __init__(self):
-        wx.Frame.__init__(self, None, -1, "My Frame", size=(800, 450))
-        self.createWidget()
-
-    def createWidget(self):
-        ########## 窗体底部状态栏 ##########  
-        self.statusbar = self.CreateStatusBar(2)
-        self.statusbar.SetStatusText("", 0)
-        self.statusbar.SetStatusText("", 1)
-
-        ########## HTTP代理书签页 ##########  
-        self.createProxyWidget()
-
-        # HTTP代理书签页
-
-    def createProxyWidget(self):
-        self.proxy_nb = wx.Notebook(self, -1, name="proxy_nb")
-        self.proxyFrame = ProxyFrame(self.proxy_nb)
-        self.proxy_nb.AddPage(self.proxyFrame, u"HTTP代理")
+        wx.Frame.__init__(self, parent=None, id=wx.ID_ANY,
+                          title="ObjectListView Demo", size=(800, 600))
+        panel = MainPanel(self)
 
 
+########################################################################
+class GenApp(wx.App):
+
+    # ----------------------------------------------------------------------
+    def __init__(self, redirect=False, filename=None):
+        wx.App.__init__(self, redirect, filename)
+
+    # ----------------------------------------------------------------------
+    def OnInit(self):
+        # create frame here
+        frame = MainFrame()
+        frame.Show()
+        return True
+
+
+# ----------------------------------------------------------------------
 def main():
-    # 设置了主窗口的初始大小960x540 800x450 640x360
-    root = wx.App()
-    frame = MainFrame()
-    frame.Show(True)
-    root.MainLoop()
+    """
+    Run the demo
+    """
+    app = GenApp()
+    app.MainLoop()
 
 
 if __name__ == "__main__":
-    main()  
+    main()
