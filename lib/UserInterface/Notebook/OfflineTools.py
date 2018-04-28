@@ -113,7 +113,7 @@ class OfflineTools(NotebookBase):
 
     def on_item_selected(self, event):
         obj = self.OLV.GetSelectedObject()
-        print obj._blocks
+        print obj._block
 
     def __open_in_file(self, event):
         obj = self.OLV.GetSelectedObject()
@@ -161,11 +161,50 @@ class DataModule(object):
         Utility.append_work(target=self.__analysis)
 
     def Append(self, line_nubmer, block):
+        self.__log_count += 1
         first_line = block[0]
         if ' NPR proc recv stack_primitive ' in first_line:
-            self.__log_count += 1
-            CallAfter(self.__list_view.AddObject,
-                      OfflineLibs.NprMessage(_no=self.__log_count, blocks=block, line=line_nubmer))
+            npr = OfflineLibs.NprMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            CallAfter(self.__list_view.AddObject, npr)
+        elif 'Print e2e msg header information start' in first_line:
+            e2e = OfflineLibs.e2eMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            CallAfter(self.__list_view.AddObject, e2e)
+        elif 'air message begin ' in first_line:
+            air = OfflineLibs.AirMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            CallAfter(self.__list_view.AddObject, air)
+
+    # if self.__buff:
+    #         last_line_number = self.__buff[-1][0]
+    #         if line_nubmer - last_line_number < 200:
+    #             self.__buff.append((line_nubmer, block))
+    #         else:
+    #             self.__log_count += 1
+    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
+    #             CallAfter(self.__list_view.AddObject, ill)
+    #             self.__buff = [(line_nubmer, block)]
+    #     else:
+    #         self.__buff.append((line_nubmer, block))
+    #
+    # elif '> air message begin' in first_line:
+    #     if not self.__buff:
+    #         self.__log_count += 1
+    #         ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=block, line=line_nubmer)
+    #         CallAfter(self.__list_view.AddObject, ill)
+    #     else:
+    #         last_line_number = self.__buff[-1][0]
+    #         if line_nubmer - last_line_number < 200:
+    #             self.__buff.append((line_nubmer, block))
+    #             air = AirMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
+    #             CallAfter(self.__list_view.AddObject, air)
+    #             self.__buff = []
+    #         else:
+    #             self.__log_count += 1
+    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
+    #             CallAfter(self.__list_view.AddObject, ill)
+    #             self.__log_count += 1
+    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.block, line=line_nubmer)
+    #             CallAfter(self.__list_view.AddObject, ill)
+    #             self.__buff = []
 
     def __set_columns(self):
         self.__list_view.SetColumns(
@@ -181,10 +220,18 @@ class DataModule(object):
 
     @staticmethod
     def __set_row_formatter(list_view, item):
+        # 优先级高的需要写在前面
         from OfflineLibs import Colour
-
-        if item._dest > 15:
-            list_view.SetBackgroundColour(Colour.red)
+        if item._type == 'e2eMessage':
+            list_view.SetBackgroundColour(Colour.LemonChiffon)
+        elif item._prot == "S_SMAC_BR":
+            list_view.SetBackgroundColour(Colour.Orange)
+        elif item._type == 'AirMessage':
+            list_view.SetBackgroundColour(Colour.LightCyan)
+        elif item._type == 'NprMessage':
+            list_view.SetBackgroundColour(Colour.White)
+        else:
+            list_view.SetBackgroundColour(Colour.White)
 
     def yield_line(self, files):
         counter = [0]
@@ -226,65 +273,3 @@ class DataModule(object):
             if string in line:
                 return True
         return False
-
-    def parse_log(self, log):
-        def case_npr_msg():
-            name = src = dest = _type = ''
-            name = Utility.find_in_string(pattern=AirMessage.NPR_begin_pattern, string=start_line)
-            return name, src, dest, _type
-
-        def case_e2e_msg():
-            name = src = dest = _type = ''
-            # name = 'e2e msg header information'
-            for line in log:
-                if 'dest_id      = ' in line:
-                    dest = Utility.find_in_string(pattern=AirMessage.dest_pattern, string=line)
-                elif 'src_id       =' in line:
-                    src = Utility.find_in_string(pattern=AirMessage.src_pattern, string=line)
-            _type = 'e2e'
-            return name, src, dest, _type
-
-        def case_air_msg():
-            name = src = dest = _type = ''
-            name = re.findall(AirMessage.trace_patterns[0], start_line)[0]
-            _type = 'air message'
-            return name, src, dest, _type
-
-        start_line = log[0]
-        if 'Print e2e msg header information start' in start_line:
-            return case_e2e_msg()
-        elif ' air message begin' in start_line:
-            return case_air_msg()
-        elif 'recv stack_primitive' in start_line:
-            return case_npr_msg()
-
-        else:
-            Logger.error('=' * 50)
-            Logger.error('Unknow type.Please check.')
-            for line in log:
-                Logger.error(repr(line))
-            Logger.error('=' * 50)
-
-        # def __insert_log_data(self, row, log):
-        #     def convert_data():
-        #         d = ['' for x in range(10)]
-        #         d[0] = self.__log_count + 1  # 第一位是log序号
-        #         d[1] = row  # 第二位log出现的行号
-        #         name, src, dest, _type = self.parse_log(log=log)
-        #         d[2] = name  # 消息名
-        #         d[3] = src  # 源
-        #         d[4] = dest  # 目标
-        #         d[5] = _type  # 类型
-        #         return d[:self.DVLC.GetColumnCount()]
-        #
-        #     data = convert_data()
-        #     self.__log_data[self.__log_count] = (data, log)
-        #     self.__log_count += 1
-        #     CallAfter(self.DVLC.AppendItem, data)
-        #
-        # def __clear_log_data(self):
-        #     self.__line_mapping_file.clear()
-        #     self.__log_data.clear()
-        #     self.__log_count = 0
-        #     self.DVLC.DeleteAllItems()
-        #
