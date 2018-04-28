@@ -5,6 +5,7 @@ from wx.lib.splitter import MultiSplitterWindow, MultiSplitterEvent
 from wx.lib.agw.fourwaysplitter import FourWaySplitter
 
 
+
 class ProxyFrame(wx.ScrolledWindow):
     def __init__(self, parent):
         wx.ScrolledWindow.__init__(self, parent)

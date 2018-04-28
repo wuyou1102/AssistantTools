@@ -28,9 +28,10 @@ def find_in_string(pattern, string):
     try:
         result = re.findall(pattern, string)[0]
     except IndexError:
-        __Logger.error('Can not find the pattern.')
-        __Logger.error("Pattern:" + pattern)
-        __Logger.error("String :" + repr(string))
         result = 'Illegal'
+        __Logger.error('Can not find the pattern.')
+        __Logger.error("Pattern:%s" % pattern)
+        __Logger.error("String :" + repr(string))
+
     finally:
         return result

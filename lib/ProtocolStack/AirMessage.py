@@ -1,20 +1,5 @@
 # -*- encoding:UTF-8 -*-
 import six
-from re import compile
-
-__trace_begin_pattern = compile(r' Trace <(.*?)> air message begin ')
-__trace_end_pattern = compile(r' Trace <(.*?)> air message end ')
-trace_patterns = (__trace_begin_pattern, __trace_end_pattern)
-
-__e2e_begin_pattern = compile(r' Print e2e msg header information start ')
-__e2e_end_pattern = compile(r' Print e2e msg header information end ')
-NPR_begin_pattern = compile(r'================ NPR proc recv stack_primitive <(.*?)> ')
-NPR_end_pattern = compile(r'================ NPR proc recv stack_primitive <(.*?)> ')
-NPR_patterns = (NPR_begin_pattern, NPR_end_pattern)
-e2e_patterns = (__e2e_begin_pattern, __e2e_end_pattern)
-
-src_pattern = compile(r'src_id       = (\d+)')
-dest_pattern = compile(r'dest_id      = (\d+)')
 
 
 class AirMessageField(str):

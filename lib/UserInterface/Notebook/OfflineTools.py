@@ -3,7 +3,7 @@ import wx
 from NotebookBase import NotebookBase
 from lib import Utility
 from wx import CallAfter
-import time
+import OfflineLibs
 from wx.lib.splitter import MultiSplitterWindow
 from ObjectListView import ObjectListView, ColumnDefn
 from lib.ProtocolStack import AirMessage
@@ -17,12 +17,7 @@ Logger = Utility.getLogger(__name__)
 class OfflineTools(NotebookBase):
     def __init__(self, parent):
         NotebookBase.__init__(self, parent=parent, name="OFFLINE")
-        self.__log_data = dict()
-        self.__line_mapping_file = dict()
-        self.__log_count = 0
-
         MainSizer = wx.BoxSizer(wx.VERTICAL)
-
         LogAnalysisSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "LogAnalysis"), wx.VERTICAL)
         PickerSizer = wx.BoxSizer(wx.HORIZONTAL)
         ButtonSizer = wx.BoxSizer(wx.VERTICAL)
@@ -34,6 +29,7 @@ class OfflineTools(NotebookBase):
         self.browse_button = wx.Button(self, wx.ID_ANY, "Browse", wx.DefaultPosition, wx.DefaultSize, 0)
         self.browse_button.Bind(wx.EVT_BUTTON, self.__browse_log)
         self.clear_button = wx.Button(self, wx.ID_ANY, "Clear", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.clear_button.Bind(wx.EVT_BUTTON, self.__clear_log)
         self.analysis_button = wx.Button(self, wx.ID_ANY, "Analysis", wx.DefaultPosition, wx.DefaultSize, 0)
         self.analysis_button.Bind(wx.EVT_BUTTON, self.__analysis_log)
 
@@ -51,7 +47,8 @@ class OfflineTools(NotebookBase):
 
         self.OLV = ObjectListView(SplitterPanel1, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
         self.OLV.Bind(wx.EVT_CONTEXT_MENU, self.on_right_click)
-        self.DM = DataModule(ListView=self.OLV)
+        self.OLV.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected)
+
         ListViewSizer = wx.BoxSizer(wx.VERTICAL)
         ListViewSizer.Add(self.OLV, 1, wx.EXPAND)
         SplitterPanel1.SetSizer(ListViewSizer)
@@ -68,6 +65,9 @@ class OfflineTools(NotebookBase):
         MainSizer.Add(SplitterSizer, 1, wx.EXPAND, 5)
 
         self.SetSizer(MainSizer)
+
+    def __clear_log(self, event):
+        self.log_list_box.Clear()
 
     def __browse_log(self, event):
         dlg = wx.FileDialog(self,
@@ -91,22 +91,9 @@ class OfflineTools(NotebookBase):
         dlg.Destroy()
 
     def __analysis_log(self, event):
-        self.analysis_button.Disable()
-        log_files = self.log_list_box.Items
-        Utility.append_work(target=self.DM.Analysis, files=log_files)
+        DM = DataModule(ListView=self.OLV, LogFiles=self.log_list_box.Items, Button=self.analysis_button)
 
-        #
-        # def analysis(files):
-        #     print time.time()
-        #     for row, log in self.yield_log(files, [AirMessage.trace_patterns, AirMessage.e2e_patterns,
-        #                                            AirMessage.NPR_patterns]):
-        #         self.__insert_log_data(log=log, row=row)
-        #     self.analysis_button.Enable()
-        #     print time.time()
-        #
-        # self.analysis_button.Disable()
-        # log_files = self.log_list_box.Items
-        # self.__clear_log_data()
+        DM.Analysis()
 
     def double_click_on_logfile_item(self, event):
         self.log_list_box.Delete(self.log_list_box.GetSelection())
@@ -124,10 +111,12 @@ class OfflineTools(NotebookBase):
             self.PopupMenu(menu)
             menu.Destroy()
 
+    def on_item_selected(self, event):
+        obj = self.OLV.GetSelectedObject()
+        print obj._blocks
+
     def __open_in_file(self, event):
-        line_number = self.OLV.GetSelectedObject()
-        print line_number
-        print line_number._id
+        obj = self.OLV.GetSelectedObject()
 
         def find_in_file(number):
             keys = self.__line_mapping_file.keys()
@@ -137,32 +126,65 @@ class OfflineTools(NotebookBase):
                 if number > key:
                     return number - key, self.__line_mapping_file.get(key)
 
-        line_number, log_file = find_in_file(line_number)
+        line_number, log_file = find_in_file(obj._line)
         cmd = 'cmd /c start {0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
         system(cmd)
 
-    def __insert_log_data(self, row, log):
-        def convert_data():
-            d = ['' for x in range(10)]
-            d[0] = self.__log_count + 1  # 第一位是log序号
-            d[1] = row  # 第二位log出现的行号
-            name, src, dest, _type = self.parse_log(log=log)
-            d[2] = name  # 消息名
-            d[3] = src  # 源
-            d[4] = dest  # 目标
-            d[5] = _type  # 类型
-            return d[:self.DVLC.GetColumnCount()]
 
-        data = convert_data()
-        self.__log_data[self.__log_count] = (data, log)
-        self.__log_count += 1
-        CallAfter(self.DVLC.AppendItem, data)
-
-    def __clear_log_data(self):
-        self.__line_mapping_file.clear()
-        self.__log_data.clear()
+class DataModule(object):
+    def __init__(self, ListView, LogFiles, Button):
+        self.__log_files = self.__sorted_files(LogFiles)  # 通过文件名排序 不在乎路径是地址
+        self.__list_view = ListView
+        self.__button = Button
+        self.__coarse_strings = ['smac-stack-sap.h', 'asc_proc_func_def.c', 'ntx_proc_func_def.c']
+        self.__set_columns()
+        self.__list_view.rowFormatter = self.__set_row_formatter
+        self.__data = []
+        self.__line_mapping_file = dict()
+        self.__patterns = [OfflineLibs.trace_patterns, OfflineLibs.e2e_patterns, OfflineLibs.NPR_patterns]
+        self.__buff = []
         self.__log_count = 0
-        self.DVLC.DeleteAllItems()
+
+    def __sorted_files(self, files):
+        return sorted(files, key=lambda x: Utility.convert_timestamp(str=Utility.basename(x),
+                                                                     time_fmt='%Y_%m_%d-%H_%M_%S.log'))
+
+    def __analysis(self):
+        print Utility.get_timestamp()
+        self.__button.Disable()
+        for line_number, block in self.yield_log(self.__log_files, self.__patterns):
+            self.Append(line_nubmer=line_number, block=block)
+        self.__button.Enable()
+        print Utility.get_timestamp()
+
+    def Analysis(self):
+        Utility.append_work(target=self.__analysis)
+
+    def Append(self, line_nubmer, block):
+        first_line = block[0]
+        if ' NPR proc recv stack_primitive ' in first_line:
+            self.__log_count += 1
+            CallAfter(self.__list_view.AddObject,
+                      OfflineLibs.NprMessage(_no=self.__log_count, blocks=block, line=line_nubmer))
+
+    def __set_columns(self):
+        self.__list_view.SetColumns(
+            [
+                ColumnDefn(title=u"No.", align="left", width=80, valueGetter='_no'),
+                ColumnDefn(title=u"Time", align="left", width=80, valueGetter='_time'),
+                ColumnDefn(title=u"Protocol", align="left", width=200, valueGetter='_prot'),
+                ColumnDefn(title=u"Source", align="center", width=80, valueGetter="_src"),
+                ColumnDefn(title=u"Dest.", align="center", width=80, valueGetter="_dest"),
+                ColumnDefn(title=u"Info", align="left", width=80, valueGetter="_info"),
+            ]
+        )
+
+    @staticmethod
+    def __set_row_formatter(list_view, item):
+        from OfflineLibs import Colour
+
+        if item._dest > 15:
+            list_view.SetBackgroundColour(Colour.red)
 
     def yield_line(self, files):
         counter = [0]
@@ -193,9 +215,17 @@ class OfflineTools(NotebookBase):
 
         mLog = self.yield_line(files=file_paths)
         for line_number, line in mLog:
+            if self.__coarse_filtration(line=line):
+                continue
             row, block = find_start(line_num=line_number, line=line)
             if row and block:
                 yield row, block
+
+    def __coarse_filtration(self, line):
+        for string in self.__coarse_strings:
+            if string in line:
+                return True
+        return False
 
     def parse_log(self, log):
         def case_npr_msg():
@@ -235,42 +265,26 @@ class OfflineTools(NotebookBase):
                 Logger.error(repr(line))
             Logger.error('=' * 50)
 
-
-class DataModule(object):
-    class Message(object):
-        def __init__(self, log):
-            self._id = Utility.randint(30, 100)
-            self._msg = Utility.randstr()
-            self._src = str(Utility.randint(0, 10))
-            self._dest = Utility.randint(10, 20)
-
-    def __init__(self, ListView):
-        self.list_view = ListView
-        self.__set_columns()
-        self.list_view.rowFormatter = self.__set_row_formatter
-
-    def Analysis(self, files):
-        for x in range(100):
-            self.list_view.AddObject(self.Message(log=files))
-
-    def Append(self, log):
-        pass
-
-    def __set_columns(self):
-        self.list_view.SetColumns(
-            [
-                ColumnDefn(title=u"No.", align="left", width=80, valueGetter='_no'),
-                ColumnDefn(title=u"Time", align="left", width=80, valueGetter='_time'),
-                ColumnDefn(title=u"Protocol", align="left", width=200, valueGetter='_prot'),
-                ColumnDefn(title=u"Source", align="center", width=80, valueGetter="_src"),
-                ColumnDefn(title=u"Dest.", align="center", width=80, valueGetter="_dest"),
-                ColumnDefn(title=u"Info", align="left", width=80, valueGetter="_info"),
-                # ColumnDefn("Mfg", "left", 180, "_dest")
-            ]
-        )
-
-    @staticmethod
-    def __set_row_formatter(list_view, item):
-
-        if item._dest > 15:
-            list_view.SetBackgroundColour(wx.Colour('#FFB90F'))
+        # def __insert_log_data(self, row, log):
+        #     def convert_data():
+        #         d = ['' for x in range(10)]
+        #         d[0] = self.__log_count + 1  # 第一位是log序号
+        #         d[1] = row  # 第二位log出现的行号
+        #         name, src, dest, _type = self.parse_log(log=log)
+        #         d[2] = name  # 消息名
+        #         d[3] = src  # 源
+        #         d[4] = dest  # 目标
+        #         d[5] = _type  # 类型
+        #         return d[:self.DVLC.GetColumnCount()]
+        #
+        #     data = convert_data()
+        #     self.__log_data[self.__log_count] = (data, log)
+        #     self.__log_count += 1
+        #     CallAfter(self.DVLC.AppendItem, data)
+        #
+        # def __clear_log_data(self):
+        #     self.__line_mapping_file.clear()
+        #     self.__log_data.clear()
+        #     self.__log_count = 0
+        #     self.DVLC.DeleteAllItems()
+        #
