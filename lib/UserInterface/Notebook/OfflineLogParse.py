@@ -5,16 +5,15 @@ from lib import Utility
 from wx import CallAfter
 import OfflineLibs
 from wx.lib.splitter import MultiSplitterWindow
-from ObjectListView import ObjectListView, ColumnDefn
-from lib.ProtocolStack import AirMessage
+from ObjectListView import ObjectListView, ColumnDefn, Filter
 import re
-from lib.UserInterface.Dialog import AirMessageDialog
+from lib.UserInterface.Dialog import Offline
 from os import system
 
 Logger = Utility.getLogger(__name__)
 
 
-class OfflineTools(NotebookBase):
+class OfflineLogParse(NotebookBase):
     def __init__(self, parent):
         NotebookBase.__init__(self, parent=parent, name="OFFLINE")
         MainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -30,24 +29,39 @@ class OfflineTools(NotebookBase):
         self.browse_button.Bind(wx.EVT_BUTTON, self.__browse_log)
         self.clear_button = wx.Button(self, wx.ID_ANY, "Clear", wx.DefaultPosition, wx.DefaultSize, 0)
         self.clear_button.Bind(wx.EVT_BUTTON, self.__clear_log)
+        self.config_button = wx.Button(self, wx.ID_ANY, "Config", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.config_button.Bind(wx.EVT_BUTTON, self.__on_config)
         self.analysis_button = wx.Button(self, wx.ID_ANY, "Analysis", wx.DefaultPosition, wx.DefaultSize, 0)
         self.analysis_button.Bind(wx.EVT_BUTTON, self.__analysis_log)
 
         ButtonSizer.Add(self.browse_button, 0, wx.ALL, 1)
         ButtonSizer.Add(self.analysis_button, 0, wx.ALL, 1)
         ButtonSizer.Add(self.clear_button, 0, wx.ALL, 1)
+        ButtonSizer.Add(self.config_button, 0, wx.ALL, 1)
+
+        CheckSizer = wx.BoxSizer(wx.VERTICAL)
+        self.NPR_checkbox = wx.CheckBox(self, wx.ID_ANY, u"层间原语", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.AIR_checkbox = wx.CheckBox(self, wx.ID_ANY, u"空口消息", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.NPR_checkbox.SetValue(True)
+        self.AIR_checkbox.SetValue(True)
+        self.NPR_checkbox.Bind(wx.EVT_CHECKBOX, self.__filter)
+        self.AIR_checkbox.Bind(wx.EVT_CHECKBOX, self.__filter)
+        CheckSizer.Add(self.NPR_checkbox, 0, wx.ALL, 5)
+        CheckSizer.Add(self.AIR_checkbox, 0, wx.ALL, 5)
 
         PickerSizer.Add(self.log_list_box, 2, wx.EXPAND | wx.ALL, 1)
-        PickerSizer.Add(ButtonSizer, 1, wx.ALL, 1)
+        PickerSizer.Add(ButtonSizer, 0, wx.ALL, 1)
+        PickerSizer.Add(CheckSizer, 0, wx.ALL, 1)
 
-        SplitterWindow = MultiSplitterWindow(parent=self, style=wx.SP_LIVE_UPDATE)
+        SplitterWindow = MultiSplitterWindow(parent=self, style=wx.SP_LIVE_UPDATE | wx.SP_HORIZONTAL)
         SplitterWindow.SetOrientation(wx.VERTICAL)
 
         SplitterPanel1 = wx.Panel(parent=SplitterWindow)
-
-        self.OLV = ObjectListView(SplitterPanel1, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
+        self.OLV = ObjectListView(SplitterPanel1, wx.ID_ANY,
+                                  style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
         self.OLV.Bind(wx.EVT_CONTEXT_MENU, self.on_right_click)
         self.OLV.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected)
+        self.OLV.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.double_click_on_item)
 
         ListViewSizer = wx.BoxSizer(wx.VERTICAL)
         ListViewSizer.Add(self.OLV, 1, wx.EXPAND)
@@ -68,6 +82,17 @@ class OfflineTools(NotebookBase):
         MainSizer.Add(SplitterSizer, 1, wx.EXPAND, 5)
 
         self.SetSizer(MainSizer)
+
+    def __filter(self, event):
+        _type_list = ["e2eMessage"]
+        self.OLV.SetFilter(Filter.Chain())
+        if self.NPR_checkbox.IsChecked():
+            _type_list.append("NprMessage")
+        if self.AIR_checkbox.IsChecked():
+            _type_list.append("AirMessage")
+        _filter = Filter.Chain(Filter.Predicate(lambda item: item._type in _type_list))
+        self.OLV.SetFilter(Filter.Chain(_filter))
+        self.OLV.RepopulateList()
 
     def __clear_log(self, event):
         self.log_list_box.Clear()
@@ -94,16 +119,20 @@ class OfflineTools(NotebookBase):
         dlg.Destroy()
 
     def __analysis_log(self, event):
-        DM = DataModule(ListView=self.OLV, LogFiles=self.log_list_box.Items, Button=self.analysis_button)
-        DM.Analysis()
+        self.OLV.DeleteAllItems()
+        self.DM = DataModule(ListView=self.OLV, LogFiles=self.log_list_box.Items, Button=self.analysis_button)
+        self.DM.Analysis()
+
+    def __on_config(self, event):
+        dialog = Offline.LogDialog()
+        dialog.ShowModal()
 
     def double_click_on_logfile_item(self, event):
         self.log_list_box.Delete(self.log_list_box.GetSelection())
 
-    def double_click_on_filter_item(self, event):
-        row = self.DVLC.GetSelectedRow()
-        dialog = AirMessageDialog(self.__log_data.get(row))
-        dialog.Show()
+    def double_click_on_item(self, event):
+        dialog = Offline.LogDialog(obj=self.OLV.GetSelectedObject(), line_mapping_file=self.DM.get_line_mapping())
+        dialog.ShowModal()
 
     def on_right_click(self, event):
         if self.OLV.GetSelectedObject():
@@ -124,18 +153,7 @@ class OfflineTools(NotebookBase):
 
     def __open_in_file(self, event):
         obj = self.OLV.GetSelectedObject()
-
-        def find_in_file(number):
-            keys = self.__line_mapping_file.keys()
-            keys.sort(reverse=True)
-            number = int(number)
-            for key in keys:
-                if number > key:
-                    return number - key, self.__line_mapping_file.get(key)
-
-        line_number, log_file = find_in_file(obj._line)
-        cmd = 'cmd /c start {0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
-        system(cmd)
+        self.DM.open_in_file(obj)
 
 
 class DataModule(object):
@@ -151,6 +169,9 @@ class DataModule(object):
         self.__patterns = [OfflineLibs.trace_patterns, OfflineLibs.e2e_patterns, OfflineLibs.NPR_patterns]
         self.__buff = []
         self.__log_count = 0
+
+    def get_line_mapping(self):
+        return self.__line_mapping_file
 
     def __sorted_files(self, files):
         return sorted(files, key=lambda x: Utility.convert_timestamp(str=Utility.basename(x),
@@ -172,51 +193,42 @@ class DataModule(object):
         first_line = block[0]
         if ' NPR proc recv stack_primitive ' in first_line:
             npr = OfflineLibs.NprMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            self.__check_last_msg()
+            self.__data.append(npr)
             CallAfter(self.__list_view.AddObject, npr)
         elif 'Print e2e msg header information start' in first_line:
             e2e = OfflineLibs.e2eMessage(_no=self.__log_count, block=block, line=line_nubmer)
-            CallAfter(self.__list_view.AddObject, e2e)
+            self.__data.append(e2e)
+            # CallAfter(self.__list_view.AddObject, e2e)
         elif 'air message begin ' in first_line:
             air = OfflineLibs.AirMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            self.__merge_air_and_e2e(air=air)
+            self.__data.append(air)
             CallAfter(self.__list_view.AddObject, air)
 
-    # if self.__buff:
-    #         last_line_number = self.__buff[-1][0]
-    #         if line_nubmer - last_line_number < 200:
-    #             self.__buff.append((line_nubmer, block))
-    #         else:
-    #             self.__log_count += 1
-    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
-    #             CallAfter(self.__list_view.AddObject, ill)
-    #             self.__buff = [(line_nubmer, block)]
-    #     else:
-    #         self.__buff.append((line_nubmer, block))
-    #
-    # elif '> air message begin' in first_line:
-    #     if not self.__buff:
-    #         self.__log_count += 1
-    #         ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=block, line=line_nubmer)
-    #         CallAfter(self.__list_view.AddObject, ill)
-    #     else:
-    #         last_line_number = self.__buff[-1][0]
-    #         if line_nubmer - last_line_number < 200:
-    #             self.__buff.append((line_nubmer, block))
-    #             air = AirMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
-    #             CallAfter(self.__list_view.AddObject, air)
-    #             self.__buff = []
-    #         else:
-    #             self.__log_count += 1
-    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.__buff, line=line_nubmer)
-    #             CallAfter(self.__list_view.AddObject, ill)
-    #             self.__log_count += 1
-    #             ill = OfflineLibs.IllegalMessage(_no=self.__log_count, blocks=self.block, line=line_nubmer)
-    #             CallAfter(self.__list_view.AddObject, ill)
-    #             self.__buff = []
+    def __merge_air_and_e2e(self, air):
+        last_msg = self.__data[-1]
+        if type(last_msg) == OfflineLibs.e2eMessage:
+            if air.merge(last_msg):
+                self.__data.pop(-1)
+                self.__merge_air_and_e2e(air)
+                return
+            else:
+                CallAfter(self.__list_view.AddObject, last_msg)
+                return
+        return
+
+    def __check_last_msg(self):
+        if not self.__data:
+            return
+        last_msg = self.__data[-1]
+        if type(last_msg) == OfflineLibs.e2eMessage:
+            CallAfter(self.__list_view.AddObject, last_msg)
 
     def __set_columns(self):
         self.__list_view.SetColumns(
             [
-                ColumnDefn(title=u"No.", align="left", width=80, valueGetter='_no'),
+                ColumnDefn(title=u"No.", align="left", width=80, valueGetter='_no', checkStateSetter=True),
                 ColumnDefn(title=u"Time", align="left", width=80, valueGetter='_time'),
                 ColumnDefn(title=u"Protocol", align="left", width=200, valueGetter='_prot'),
                 ColumnDefn(title=u"Source", align="center", width=80, valueGetter="_src"),
@@ -230,7 +242,7 @@ class DataModule(object):
         # 优先级高的需要写在前面
         from OfflineLibs import Colour
         if item._type == 'e2eMessage':
-            list_view.SetBackgroundColour(Colour.LemonChiffon)
+            list_view.SetBackgroundColour(wx.RED)
         elif item._prot == "S_SMAC_BR":
             list_view.SetBackgroundColour(Colour.Orange)
         elif item._type == 'AirMessage':
@@ -241,13 +253,13 @@ class DataModule(object):
             list_view.SetBackgroundColour(Colour.White)
 
     def yield_line(self, files):
-        counter = [0]
+        counter = 0
         for file in files:
-            self.__line_mapping_file[counter[0]] = file
+            self.__line_mapping_file[counter] = file
             with open(file) as mfile:
                 for line in mfile:
-                    counter[0] = counter[0] + 1
-                    yield counter[0], line
+                    counter += 1
+                    yield counter, line
 
     def yield_log(self, file_paths, patterns):
         def find_start(line_num, line):
@@ -261,7 +273,11 @@ class DataModule(object):
             return None, None
 
         def find_end(pattern, block):
+            counter = 0
             for line_number, line in mLog:
+                if counter >= 400:
+                    break
+                counter += 1
                 block.append(line)
                 if re.search(pattern, line):
                     return True
@@ -280,3 +296,16 @@ class DataModule(object):
             if string in line:
                 return True
         return False
+
+    def open_in_file(self, obj):
+        def find_in_file(number):
+            keys = self.__line_mapping_file.keys()
+            keys.sort(reverse=True)
+            number = int(number)
+            for key in keys:
+                if number > key:
+                    return number - key, self.__line_mapping_file.get(key)
+
+        line_number, log_file = find_in_file(obj._line)
+        cmd = 'cmd /c start {0} -n{1} {2}'.format(Utility.Path.EXE_NOTEPAD, line_number, log_file)
+        system(cmd)

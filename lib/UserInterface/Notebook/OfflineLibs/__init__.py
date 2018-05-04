@@ -5,3 +5,5 @@ from Item import e2eMessage
 from Item import trace_patterns
 from Item import e2e_patterns
 from Item import NPR_patterns
+from Config import *
+from Colour import *

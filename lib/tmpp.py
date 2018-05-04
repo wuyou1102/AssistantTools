@@ -1,124 +1,50 @@
 import wx
-from ObjectListView import ObjectListView, ColumnDefn
-
-import Utility
 
 
-########################################################################
-class Book(object):
-    """
-    Model of the Book object
+class Mywin(wx.Frame):
 
-    Contains the following attributes:
-    'ISBN', 'Author', 'Manufacturer', 'Title'
-    """
+    def __init__(self, parent, title):
+        super(Mywin, self).__init__(parent, title=title, size=(400, 300))
+        self.InitUI()
 
-    # ----------------------------------------------------------------------
-    def __init__(self, title, author, isbn, mfg):
-        self.isbn = isbn
-        self.author = author
-        self.mfg = mfg
-        self.title = title
+    def InitUI(self):
+        menubar = wx.MenuBar()
 
+        fileMenu = wx.Menu()
 
-########################################################################
-class MainPanel(wx.Panel):
-    # ----------------------------------------------------------------------
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-        self.products = [Book("wxPython in Action", "Robin Dunn",
-                              "1932394621", "Manning"),
-                         Book("Hello World", "Warren and Carter Sande",
-                              "1933988495", "Manning")
-                         ]
-
-        self.dataOlv = ObjectListView(self, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        self.setBooks()
-
-        # Allow the cell values to be edited when double-clicked
-        self.dataOlv.cellEditMode = ObjectListView.CELLEDIT_SINGLECLICK
-
-        # create an update button
-        updateBtn = wx.Button(self, wx.ID_ANY, "Update OLV")
-        updateBtn.Bind(wx.EVT_BUTTON, self.updateControl)
-
-        # Create some sizers
-        mainSizer = wx.BoxSizer(wx.VERTICAL)
-
-        mainSizer.Add(self.dataOlv, 1, wx.ALL | wx.EXPAND, 5)
-        mainSizer.Add(updateBtn, 0, wx.ALL | wx.CENTER, 5)
-        self.SetSizer(mainSizer)
-
-    def _ddd(self):
         for x in range(10000):
-            wx.CallAfter(self.dataOlv.AddObject,
-                         Book(Utility.randstr(5), Utility.randstr(9), Utility.randstr(5), Utility.randstr(9)))
-            import time
-            time.sleep(0.05)
-            # ----------------------------------------------------------------------
-
-    def updateControl(self, event):
-        Utility.append_work(target=self._ddd)
-
-        # """
-        #
-        # """
-        # print "updating..."
-        # product_dict = [{"title": "Core Python Programming", "author": "Wesley Chun",
-        #                  "isbn": "0132269937", "mfg": "Prentice Hall"},
-        #                 {"title": "Python Programming for the Absolute Beginner",
-        #                  "author": "Michael Dawson", "isbn": "1598631128",
-        #                  "mfg": "Course Technology"},
-        #                 {"title": "Learning Python", "author": "Mark Lutz",
-        #                  "isbn": "0596513984", "mfg": "O'Reilly"}
-        #                 ]
-        # data = self.products + product_dict
-        # self.dataOlv.SetObjects(data)
-
-    # ----------------------------------------------------------------------
-    def setBooks(self, data=None):
-        self.dataOlv.SetColumns([
-            ColumnDefn("Title", "left", 220, "title"),
-            ColumnDefn("Author", "left", 200, "author"),
-            ColumnDefn("ISBN", "right", 100, "isbn"),
-            ColumnDefn("Mfg", "left", 180, "mfg")
-        ])
-
-        self.dataOlv.SetObjects(self.products)
+            fileMenu.Append(self.__init_menu_item(fileMenu, 'hello'))
+            fileMenu.Append(self.__init_menu_item(fileMenu, 'world'))
+            fileMenu.Append(self.__init_menu_item(fileMenu, '!'))
 
 
-########################################################################
-class MainFrame(wx.Frame):
-    # ----------------------------------------------------------------------
-    def __init__(self):
-        wx.Frame.__init__(self, parent=None, id=wx.ID_ANY,
-                          title="ObjectListView Demo", size=(800, 600))
-        panel = MainPanel(self)
+        menubar.Append(fileMenu, '&File')
+        self.SetMenuBar(menubar)
+        self.text = wx.TextCtrl(self, -1, style=wx.EXPAND | wx.TE_MULTILINE)
+        #self.Bind(wx.EVT_MENU, self.menuhandlerm, menu=fileMenu)
+        self.Bind(wx.EVT_MENU, lambda evt, menu=fileMenu: self.menuhandlerm(evt, menu))
+
+        self.SetSize((350, 250))
+        self.Centre()
+        self.Show(True)
+
+    def aaa(self, event):
+        print event.Lable
+
+    def __init_menu_item(self, parent, text):
+        item = wx.MenuItem(parent, wx.ID_ANY, text=text, kind=wx.ITEM_CHECK, helpString='dddddd')
+        return item
+
+    def menuhandlerm(self, event, menu):
+        id = event.GetId()
+        if id == wx.ID_NEW:
+            self.text.AppendText("new" + "\n")
+        print event.IsChecked()
+        id = event.GetId()
+        print id
+        print menu.GetLabel(id)
 
 
-########################################################################
-class GenApp(wx.App):
-
-    # ----------------------------------------------------------------------
-    def __init__(self, redirect=False, filename=None):
-        wx.App.__init__(self, redirect, filename)
-
-    # ----------------------------------------------------------------------
-    def OnInit(self):
-        # create frame here
-        frame = MainFrame()
-        frame.Show()
-        return True
-
-
-# ----------------------------------------------------------------------
-def main():
-    """
-    Run the demo
-    """
-    app = GenApp()
-    app.MainLoop()
-
-
-if __name__ == "__main__":
-    main()
+ex = wx.App()
+Mywin(None, 'MenuBar Demo - yiibai.com')
+ex.MainLoop()

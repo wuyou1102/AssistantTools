@@ -1,3 +1,3 @@
-from OfflineTools import OfflineTools
+from OfflineLogParse import OfflineLogParse
 from OnlineTools import OnlineTools
-DISPLAY_PANEL = [OfflineTools,OnlineTools]
+DISPLAY_PANEL = [OfflineLogParse, OnlineTools]

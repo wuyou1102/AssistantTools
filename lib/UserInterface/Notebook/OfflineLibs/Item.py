@@ -22,7 +22,6 @@ node_pattern = compile(r'nodeId               : (\d+)')
 
 class Message(object):
     def __init__(self, _no, block, line):
-
         self._line = line
         self._no = _no
         self._time = ''
@@ -55,11 +54,21 @@ class AirMessage(Message):
         if 'air message begin' in fl:
             self._prot = Utility.find_in_string(pattern=trace_begin_pattern, string=fl)
         if self._prot == "S_SMAC_BR":
+            self._dest = 'N/A'
             for line in self._block:
-                if 'networkId            :' in line:
-                    self._dest = Utility.find_in_string(pattern=network_pattern, string=line)
-                elif 'nodeId               :' in line:
+                if 'nodeId               :' in line:
                     self._src = Utility.find_in_string(pattern=node_pattern, string=line)
+
+    def merge(self, e2e):
+        if self._line - e2e._line > 50:
+            return False
+        else:
+            self._line = e2e._line
+            self._time = e2e._time
+            self._src = e2e._src
+            self._dest = e2e._dest
+            self._block = e2e._block + self._block
+            return True
 
 
 class NprMessage(Message):
@@ -72,12 +81,17 @@ class NprMessage(Message):
         fl = self._block[0]
         if 'NPR proc recv stack_primitive' in fl:
             self._prot = Utility.find_in_string(pattern=NPR_begin_pattern, string=fl)
+        if self._prot and self._prot != 'MSG_TIMEOUT':
+            tmp = self._prot.split('_')
+            self._src = tmp[0]
+            self._dest = tmp[1]
 
 
 class e2eMessage(Message):
     def __init__(self, _no, block, line):
         Message.__init__(self, _no=_no, block=block, line=line)
         self._type = "e2eMessage"
+        self._prot = "E2E_MESSAGE"
         self._parse()
 
     def _parse(self):
