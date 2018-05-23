@@ -1,5 +1,4 @@
-from random import randint, randrange
-import random
+import random as __random
 
 whitespace = ' \t\n\r\v\f'
 lowercase = 'abcdefghijklmnopqrstuvwxyz'
@@ -12,5 +11,5 @@ punctuation = """!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
 printable = digits + letters + punctuation + whitespace
 
 
-def randstr(length=6):
-    return ''.join([random.choice(uppercase) for x in xrange(length)])
+def string(length=6):
+    return ''.join([__random.choice(uppercase) for x in xrange(length)])

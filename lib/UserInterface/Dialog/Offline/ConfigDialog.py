@@ -1,6 +1,5 @@
 # encoding: utf-8
 from lib.UserInterface.Dialog import DialogBase
-from lib.UserInterface.Notebook import OfflineLibs
 import wx
 
 

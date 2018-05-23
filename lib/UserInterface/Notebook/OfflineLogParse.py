@@ -3,7 +3,7 @@ import wx
 from NotebookBase import NotebookBase
 from lib import Utility
 from wx import CallAfter
-import OfflineLibs
+from lib.UserInterface import OfflineLibs
 from wx.lib.splitter import MultiSplitterWindow
 from ObjectListView import ObjectListView, ColumnDefn, Filter
 import re
@@ -15,7 +15,7 @@ Logger = Utility.getLogger(__name__)
 
 class OfflineLogParse(NotebookBase):
     def __init__(self, parent):
-        NotebookBase.__init__(self, parent=parent, name="OFFLINE")
+        NotebookBase.__init__(self, parent=parent, name="OfflineLog")
         MainSizer = wx.BoxSizer(wx.VERTICAL)
         LogAnalysisSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "LogAnalysis"), wx.VERTICAL)
         PickerSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -29,15 +29,15 @@ class OfflineLogParse(NotebookBase):
         self.browse_button.Bind(wx.EVT_BUTTON, self.__browse_log)
         self.clear_button = wx.Button(self, wx.ID_ANY, "Clear", wx.DefaultPosition, wx.DefaultSize, 0)
         self.clear_button.Bind(wx.EVT_BUTTON, self.__clear_log)
-        self.config_button = wx.Button(self, wx.ID_ANY, "Config", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.config_button.Bind(wx.EVT_BUTTON, self.__on_config)
+        # self.config_button = wx.Button(self, wx.ID_ANY, "Config", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.config_button.Bind(wx.EVT_BUTTON, self.__on_config)
         self.analysis_button = wx.Button(self, wx.ID_ANY, "Analysis", wx.DefaultPosition, wx.DefaultSize, 0)
         self.analysis_button.Bind(wx.EVT_BUTTON, self.__analysis_log)
 
         ButtonSizer.Add(self.browse_button, 0, wx.ALL, 1)
         ButtonSizer.Add(self.analysis_button, 0, wx.ALL, 1)
         ButtonSizer.Add(self.clear_button, 0, wx.ALL, 1)
-        ButtonSizer.Add(self.config_button, 0, wx.ALL, 1)
+        # ButtonSizer.Add(self.config_button, 0, wx.ALL, 1)
 
         CheckSizer = wx.BoxSizer(wx.VERTICAL)
         self.NPR_checkbox = wx.CheckBox(self, wx.ID_ANY, u"层间原语", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -105,6 +105,7 @@ class OfflineLogParse(NotebookBase):
                             style=wx.FD_MULTIPLE
                             )
         if dlg.ShowModal() == wx.ID_OK:
+            print Utility.get_timestamp()
             for log_path in dlg.GetPaths():
                 if log_path not in self.log_list_box.Items:
                     try:
@@ -116,6 +117,7 @@ class OfflineLogParse(NotebookBase):
                             log_path), u"   文件名错误", wx.OK | wx.ICON_ERROR)
                         if msg_dlg.ShowModal() == wx.ID_OK:
                             msg_dlg.Destroy()
+            print Utility.get_timestamp()
         dlg.Destroy()
 
     def __analysis_log(self, event):
@@ -240,7 +242,7 @@ class DataModule(object):
     @staticmethod
     def __set_row_formatter(list_view, item):
         # 优先级高的需要写在前面
-        from OfflineLibs import Colour
+        from lib.UserInterface.OfflineLibs import Colour
         if item._type == 'e2eMessage':
             list_view.SetBackgroundColour(wx.RED)
         elif item._prot == "S_SMAC_BR":

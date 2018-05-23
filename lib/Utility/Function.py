@@ -1,9 +1,8 @@
+# -*- encoding:UTF-8 -*-
 from lib.Config import Path
 from lib.Config import Parameter
 from logging import getLogger
-from inspect import isfunction, ismodule, isclass, ismethod
-from lib.Thread.Manager import append_work
-from os.path import exists, basename
+from inspect import isfunction, ismodule, isclass
 import re
 
 __Logger = getLogger(__name__)

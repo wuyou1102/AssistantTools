@@ -11,7 +11,6 @@ class Frame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, None, id=999, title="Assistant Tool V0.0.1", size=(800, 600))
         self.Center()
-
         notebook = wx.Notebook(self)
         for table in Notebook.DISPLAY_PANEL:
             table_page = table(parent=notebook)
