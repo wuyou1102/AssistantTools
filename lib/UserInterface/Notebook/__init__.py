@@ -1,4 +1,6 @@
 from OfflineLogParse import OfflineLogParse
-from RegisterParse import RegisterParse
+from DrawSNR import DrawSNR
 from OnlineTools import OnlineTools
-DISPLAY_PANEL = [RegisterParse, OfflineLogParse]
+from RegisterGrid import RegisterGrid
+
+DISPLAY_PANEL = [RegisterGrid, DrawSNR, OfflineLogParse]

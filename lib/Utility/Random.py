@@ -13,3 +13,7 @@ printable = digits + letters + punctuation + whitespace
 
 def string(length=6):
     return ''.join([__random.choice(uppercase) for x in xrange(length)])
+
+
+def integer(a, b):
+    return __random.randint(a, b)

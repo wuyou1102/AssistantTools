@@ -2,7 +2,6 @@
 
 from Time import *
 from Function import *
-import Register
-import Radom
+import Random as Random
 from os.path import basename
-from lib.Thread.Manager import append_work
+from lib.Thread.Manager import append_work, is_alive

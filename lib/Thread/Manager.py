@@ -27,12 +27,20 @@ def append_work(target, allow_dupl=False, **kwargs):
         return __append_thread(target=target, **kwargs)
 
 
+def is_alive(name):
+    _thread = __thread_pool.get(name)
+    if _thread and _thread.isAlive():
+        return True
+    return False
+
+
 def __append_thread_duplicate(target, **kwargs):
     def add_suffix(name):
         name += ':'
         for x in range(20):
             name += choice('0123456789ABCDEF')
         return name
+
     name = kwargs.get('name', target.__name__)
     name = add_suffix(name)
     return __start_thread(target=target, name=name, **kwargs)

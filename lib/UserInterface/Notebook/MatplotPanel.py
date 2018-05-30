@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use("WXAgg")
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2Wx
-from matplotlib.ticker import MultipleLocator, FuncFormatter
+from matplotlib.ticker import MultipleLocator, FuncFormatter, FormatStrFormatter
 
 import pylab
 from matplotlib import pyplot
@@ -18,19 +18,21 @@ from matplotlib import pyplot
 
 ######################################################################################
 class MatplotPanel(wx.Panel):
-    ''' #MPL_Panel_base面板,可以继承或者创建实例'''
-
     def __init__(self, parent):
         wx.Panel.__init__(self, parent=parent, id=-1)
-        self.Figure = matplotlib.figure.Figure(figsize=(4, 4))
-        self.axes = self.Figure.add_axes([0.05, 0.05, 0.92, 0.92])
+        self.Figure = matplotlib.figure.Figure()
+        self.axes = self.Figure.add_axes([0.05, 0.05, 0.93, 0.94])
         self.FigureCanvas = FigureCanvas(self, -1, self.Figure)
-        self.NavigationToolbar = Toolbar(self.FigureCanvas)
 
+        self.NavigationToolbar = Toolbar(self.FigureCanvas,
+                                         mPause=parent.PauseDraw,
+                                         mStart=parent.StartDraw,
+                                         mStop=parent.StopDraw)
         self.TopBoxSizer = wx.BoxSizer(wx.VERTICAL)
         self.TopBoxSizer.Add(self.FigureCanvas, proportion=-10, border=2, flag=wx.ALL | wx.EXPAND)
         self.TopBoxSizer.Add(self.NavigationToolbar, 0, wx.ALL | wx.EXPAND)
         self.SetSizer(self.TopBoxSizer)
+        self.init_axis()
 
         ###方便调用
         self.pylab = pylab
@@ -39,6 +41,16 @@ class MatplotPanel(wx.Panel):
         self.numpy = np
         self.np = np
         self.plt = pyplot
+
+    def init_axis(self):
+        self.axis([0, 100, -130, -30])  # 设置默认坐标系
+        self.axes.tick_params(labelsize=8)  # 设置坐标系哥都文字大小
+        self.axes.xaxis.set_major_locator(MultipleLocator(10))  # 设置x轴主坐标刻度为5
+        self.axes.xaxis.set_minor_locator(MultipleLocator(1))  # 设置x轴次坐标刻度为1
+        self.axes.yaxis.set_major_locator(MultipleLocator(5))  # 设置y轴主坐标刻度为10
+        self.axes.yaxis.set_minor_locator(MultipleLocator(1))
+        self.axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
+        self.UpdatePlot()
 
     def UpdatePlot(self):
         '''#修改图形的任何属性后都必须使用self.UpdatePlot()更新GUI界面 '''
@@ -49,6 +61,7 @@ class MatplotPanel(wx.Panel):
 
     def plot(self, *args, **kwargs):
         '''#最常用的绘图命令plot '''
+
         self.axes.plot(*args, **kwargs)
         self.UpdatePlot()
 
@@ -91,6 +104,7 @@ class MatplotPanel(wx.Panel):
 
     def xticker(self, major_ticker=1.0, minor_ticker=0.1):
         ''' # 设置X轴的刻度大小 '''
+
         self.axes.xaxis.set_major_locator(MultipleLocator(major_ticker))
         self.axes.xaxis.set_minor_locator(MultipleLocator(minor_ticker))
 
@@ -125,20 +139,41 @@ class MatplotPanel(wx.Panel):
         ''' #可以用它来显示一些帮助信息,如鼠标位置等 '''
         self.StaticText.SetLabel(HelpString)
 
+    def array(self, *args, **kwargs):
+        return np.array(*args, **kwargs)
+
 
 class Toolbar(NavigationToolbar2Wx):
-    def __init__(self, canvas):
-        NavigationToolbar2Wx.toolitems = (
+    def __init__(self, canvas, mStart, mPause, mStop):
+        self.toolitems = (
             ('Home', 'Reset original view', 'home', 'home'),
             ('Back', 'Back to  previous view', 'back', 'back'),
             ('Forward', 'Forward to next view', 'forward', 'forward'),
             ('Pan', 'Pan axes with left mouse, zoom with right', 'move', 'pan'),
             ('Zoom', 'Zoom to rectangle', 'zoom_to_rect', 'zoom'),
             ('Save', 'Save the figure', 'filesave', 'save_figure'),
-        )
-        NavigationToolbar2Wx.__init__(self, canvas=canvas)
+            ('Start', 'Start draw the view', 'start', 'start'),
+            ('Stop', 'Stop draw the view', 'stop', 'stop'),
 
-    def drag_pan(self, event):
-        print 'ss'
-        super(Toolbar, self).drag_pan(event)
-    
+        )
+        self.mPause = mPause
+        self.mStart = mStart
+        self.mStop = mStop
+
+        NavigationToolbar2Wx.__init__(self, canvas=canvas)
+        self.ctrl_pan = self.FindById(self.wx_ids['Pan'])
+        self.ctrl_zoom = self.FindById(self.wx_ids['Zoom'])
+
+    def pan(self, event):
+        self.mPause(self.ctrl_pan.IsToggled())
+        super(Toolbar, self).pan(event)
+
+    def start(self, event):
+        self.mStart()
+
+    def stop(self, event):
+        self.mStop()
+
+    def zoom(self, event):
+        self.mPause(self.ctrl_zoom.IsToggled())
+        super(Toolbar, self).zoom(event)

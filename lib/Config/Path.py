@@ -25,6 +25,6 @@ RESOURCE = join(WORKSPACE, 'resource')
 LOG = _makedirs(WORKSPACE, 'log')
 
 RES_AR_SIRIUS = join(RESOURCE, 'ARSiriusDLL')
-DLL_AR_SIRIUS_REQ_LIB = join(RES_AR_SIRIUS, 'ARSiriusRegLib.dll')  # 酷芯寄存器读写动态链接库
+DLL_AR_SIRIUS_REQ_LIB = join(RES_AR_SIRIUS, 'ARSiriusReg.dll')  # 酷芯寄存器读写动态链接库
 
 EXE_NOTEPAD = join(RESOURCE, 'notepad', 'notepad++.exe')

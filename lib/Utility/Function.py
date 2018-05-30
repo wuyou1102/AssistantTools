@@ -34,3 +34,8 @@ def find_in_string(pattern, string):
 
     finally:
         return result
+
+
+# TODO
+def check_hex_input(string):
+    pass

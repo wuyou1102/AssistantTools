@@ -15,7 +15,7 @@ Logger = Utility.getLogger(__name__)
 
 class OfflineLogParse(NotebookBase):
     def __init__(self, parent):
-        NotebookBase.__init__(self, parent=parent, name="OfflineLog")
+        NotebookBase.__init__(self, parent=parent, name="离线日志分析")
         MainSizer = wx.BoxSizer(wx.VERTICAL)
         LogAnalysisSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "LogAnalysis"), wx.VERTICAL)
         PickerSizer = wx.BoxSizer(wx.HORIZONTAL)
