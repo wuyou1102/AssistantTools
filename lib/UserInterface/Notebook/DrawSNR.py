@@ -18,10 +18,12 @@ class DrawSNR(NotebookBase):
         MplSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
         MplSizer.Add(self.MPL, 1, wx.EXPAND)
         MainSizer.Add(MplSizer, 1, wx.EXPAND | wx.ALL, 5)
-
-        self.line_snr1, = self.MPL.axes.plot([], [], color="green", linewidth=0.35, linestyle="-")
-        self.line_snr2, = self.MPL.axes.plot([], [], color="red", linewidth=0.35, linestyle="-")
-
+        self.mAnim = None
+        self.interval = 0.01
+        self.line_snr1, = self.MPL.axes.plot([], [], label='line 1', color="green", linewidth=0.5, linestyle="-")
+        self.line_snr2, = self.MPL.axes.plot([], [], label='line 2', color="red", linewidth=0.5, linestyle="-")
+        self.MPL.axes.legend()
+        self.display_line = [self.line_snr1, self.line_snr2]
         self.SD = None
         self.__pause = False
         self.SetSizer(MainSizer)
@@ -33,51 +35,60 @@ class DrawSNR(NotebookBase):
             return True
         self.SD = SignalData()
         self.__pause = False
-        self.MPL.cla()
         self.MPL.init_axis()
-        interval = 0.5
-        self.SD.collect_data(interval)
-        anim = animation.FuncAnimation(self.MPL.Figure, self.__UpdateSignal)
+        self.SD.collect_data(self.interval)
+        self.mAnim = animation.FuncAnimation(self.MPL.Figure, self.UpdateSignal, frames=100,
+                                             interval=self.interval * 100,
+                                             blit=True)
+
         # Utility.append_work(target=self.__DrawSignal, interval=interval, allow_dupl=False)
 
-    def __UpdateSignal(self, i):
+    def UpdateSignal(self, i):
         snr1, snr2, times = self.SD.get_data()
+        if len(times) > 100 and not self.__pause:
+            self.MPL.axis([times[-100], times[-1], None, None])
+            self.MPL.UpdatePlot()
         snr1 = self.MPL.array(snr1)
         snr2 = self.MPL.array(snr2)
         times = self.MPL.array(times)
-        self.line_snr1.set_data(snr1, times)
+        self.line_snr1.set_data(times, snr1)
+        self.line_snr2.set_data(times, snr2)
+        return tuple(self.display_line)
 
-        return self.line_snr1,
-
-    def __DrawSignal(self, interval):
-        sleep(0.5)
-        while True:
-            if self.__pause:
-                continue
-            sleep(interval)
-            if not self.SD:
-                break
-            else:
-                snr1, snr2, times = self.SD.get_data()
-                if len(times) > 100:
-                    self.MPL.axis([times[-100], times[-1], None, None])
-                self.line_snr1.set_data(snr1, times)
-                self.MPL.axes.draw_artist(self.line_snr1)
-
-                # self.MPL.plot(times, snr1, color="green", linewidth=0.35, linestyle="-")
-            # self.MPL.plot(times, snr2, color="red", linewidth=0.35, linestyle="-")
+    # def __DrawSignal(self, interval):
+    #     sleep(0.5)
+    #     while True:
+    #         if self.__pause:
+    #             continue
+    #         sleep(interval)
+    #         if not self.SD:
+    #             break
+    #         else:
+    #             snr1, snr2, times = self.SD.get_data()
+    #             if len(times) > 100:
+    #                 self.MPL.axis([times[-100], times[-1], None, None])
+    #             self.line_snr1.set_data(snr1, times)
+    #             self.MPL.axes.draw_artist(self.line_snr1)
+    #
+    #             # self.MPL.plot(times, snr1, color="green", linewidth=0.35, linestyle="-")
+    #         # self.MPL.plot(times, snr2, color="red", linewidth=0.35, linestyle="-")
 
     def PauseDraw(self, boolean):
         Logger.info('PauseDraw:%s' % boolean)
         self.__pause = boolean
 
     def StopDraw(self):
+        if not self.SD and not self.mAnim:
+            Logger.info('Nothing need stop.')
+            return True
         if self.SD:
-            Logger.info('StopDraw')
+            Logger.info('StopCollectData')
             self.SD.stop()
             self.SD = None
-        else:
-            Logger.info('Nothing need stop.')
+        if self.mAnim:
+            Logger.info('StopDrawLine')
+            self.mAnim._stop()
+            self.mAnim = None
 
 
 class SignalData(object):

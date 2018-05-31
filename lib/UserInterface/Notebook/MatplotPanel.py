@@ -50,6 +50,7 @@ class MatplotPanel(wx.Panel):
         self.axes.yaxis.set_major_locator(MultipleLocator(5))  # 设置y轴主坐标刻度为10
         self.axes.yaxis.set_minor_locator(MultipleLocator(1))
         self.axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
+        self.axes.legend()
         self.UpdatePlot()
 
     def UpdatePlot(self):
@@ -177,3 +178,8 @@ class Toolbar(NavigationToolbar2Wx):
     def zoom(self, event):
         self.mPause(self.ctrl_zoom.IsToggled())
         super(Toolbar, self).zoom(event)
+
+    def save_figure(self, event):
+        self.mPause(True)
+        super(Toolbar, self).save_figure(event)
+        self.mPause(False)
