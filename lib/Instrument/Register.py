@@ -15,26 +15,31 @@ class Register(object):
         self.lock = threading.Lock()
         self.__SetReg = __CDLL.SetReg
         self.__SetReg.argtypes = [c_uint32, c_uint32]
+        self.__SetReg.restype = c_bool
         self.__GetReg = __CDLL.GetReg
         self.__GetReg.argtypes = [c_uint32, c_char_p]
+        self.__GetReg.restype = c_bool
         self.__DeviceInit = __CDLL.DeviceInit
+        self.__DeviceInit.restype = c_bool
         self.__DeviceRelease = __CDLL.DeviceRelease
+        self.__DeviceRelease.restype = c_bool
 
     def Init(self):
         result = self.__DeviceInit()
         Logger.info(
             'Register Device Init result:%s' % result)
-        if result == 1:
-            return True
-        elif result == -256:
-            Logger.error('The register instrument is being used by other application.')
-            Logger.error('Please close other application and try again.')
-            return False
-        elif result == -2147483648:
-            Logger.error('Can not find register instrument.')
-            Logger.error('Register instrument maybe is not power on.')
-            return False
-        return False
+        return result
+        # if result == 1:
+        #     return True
+        # elif result == -256:
+        #     Logger.error('The register instrument is being used by other application.')
+        #     Logger.error('Please close other application and try again.')
+        #     return False
+        # elif result == -2147483648:
+        #     Logger.error('Can not find register instrument.')
+        #     Logger.error('Register instrument maybe is not power on.')
+        #     return False
+        # return False
 
     def Release(self):
         return self.__DeviceRelease()
@@ -61,7 +66,7 @@ class Register(object):
         result = self.__SetReg(self.__ConvertAddress(address), self.__ConvertData(data))
         Logger.debug(
             'Set  Address \"%s\" value as \"%s\" and func result is  \"%s\"' % (hex(address), data, result))
-        if result != -2147483647:
+        if not result:
             if self.Reconnect(times=1, interval=1):
                 return self.__set(address=address, data=data)
             return False
@@ -84,7 +89,7 @@ class Register(object):
     def __get_byte(self, address):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
-        if result != 1:
+        if not result:
             if self.Reconnect():
                 return self.__get_byte(address=address)
             return False
@@ -96,11 +101,10 @@ class Register(object):
     def __get(self, address):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
-        if result != 1:
+        if not result:
             if self.Reconnect():
                 return self.__get(address=address)
             return False
-            # raise IOError('Can not get address info.')
         value = binascii.b2a_hex(tmp_str.raw[::-1]).upper()
         Logger.debug(
             'Read Address \"%s\" value is \"%s\" and func result is  \"%s\"' % (hex(address), value, result))
@@ -122,4 +126,6 @@ class Register(object):
 if __name__ == '__main__':
     r = Register()
     r.Init()
-    r.GetByte(0x60680000)
+    while True:
+        r.Set(0x60680000, 0x000B0200)
+        r.Get(0x60680000)

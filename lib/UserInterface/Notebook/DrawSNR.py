@@ -10,6 +10,8 @@ import numpy as np
 
 Logger = Utility.getLogger(__name__)
 
+filter_list = ['BR']
+
 
 class DrawSNR(NotebookBase):
     def __init__(self, parent):
@@ -20,42 +22,40 @@ class DrawSNR(NotebookBase):
         MplSizer.Add(self.MPL, 1, wx.EXPAND)
         MainSizer.Add(MplSizer, 1, wx.EXPAND | wx.ALL, 5)
         self.mAnim = None
-        self.interval = 0.1
-        self.line_snr1, = self.MPL.axes.plot([], [], label='line 1', color="green", linewidth=0.5, linestyle="-")
-        self.line_snr2, = self.MPL.axes.plot([], [], label='line 2', color="red", linewidth=0.5, linestyle="-")
-
-        self.display_line = [self.line_snr1, self.line_snr2]
-        self.SD = None
+        self.interval = 0.5
+        self.lines = list()
+        self.count = 0
+        self.SD = SignalData(self.MPL.axes)
         self.__pause = False
         self.SetSizer(MainSizer)
 
     def StartDraw(self):
-        if not Utility.is_alive('__CollectSignalData'):
-            self.SD = None
-        if self.SD:
+        # if not Utility.is_alive('__CollectSignalData'):
+        #     self.SD.reset_data()
+        # else:
+        #     return True
+        # self.__pause = False
+        if self.mAnim:
+            Logger.info("Draw is already running.")
             return True
-        self.SD = SignalData()
-        self.__pause = False
-        self.MPL.init_axis()
-        self.SD.collect_data(self.interval)
+
+        # self.SD.collect_data(self.interval)
+        self.SD.reset_data()
         self.mAnim = animation.FuncAnimation(self.MPL.Figure, self.UpdateSignal, frames=100,
                                              interval=self.interval * 1000,
                                              blit=True)
 
-        # Utility.append_work(target=self.__DrawSignal, interval=interval, allow_dupl=False)
-
     def UpdateSignal(self, i):
-        BR = self.SD.getBR()
-        c = self.SD.count
-        if c > 100 and not self.__pause:
-            self.MPL.axis([c - 100, c, None, None])
-            self.MPL.UpdatePlot()
+        if self.__pause:
+            return self.lines
+        if self.count>100:
+            self.MPL.axis([self.count - 100, self.count, None, None])
+        self.SD.updata(count=self.count)
+        self.count += 1
+        return self.lines
 
-        self.line_snr1.set_data(*BR.A0_Data())
-        self.line_snr2.set_data(*BR.A1_Data())
-        return tuple(self.display_line)
+        # def __DrawSignal(self, interval):
 
-    # def __DrawSignal(self, interval):
     #     sleep(0.5)
     #     while True:
     #         if self.__pause:
@@ -78,13 +78,6 @@ class DrawSNR(NotebookBase):
         self.__pause = boolean
 
     def StopDraw(self):
-        if not self.SD and not self.mAnim:
-            Logger.info('Nothing need stop.')
-            return True
-        if self.SD:
-            Logger.info('StopCollectData')
-            self.SD.stop()
-            self.SD = None
         if self.mAnim:
             Logger.info('StopDrawLine')
             self.mAnim._stop()
@@ -92,65 +85,115 @@ class DrawSNR(NotebookBase):
 
 
 class SignalData(object):
-    def __init__(self):
+    def __init__(self, axes):
         self.__reg = Instrument.get_register()
-        self.__reg.Set(0x60680000, 0x000B0201)
-        self.__reg.Set(0x60680000, 0x000B0200)
-        sleep(0.1)
+        self.axes = axes
+        self.BR = BR(self.axes)
+        self.CS = CS(self.axes)
+        self.USER0 = USER0(self.axes)
+        self.USER1 = USER1(self.axes)
+        self.USER2 = USER2(self.axes)
+        self.USER3 = USER3(self.axes)
 
-        self.count = 0
-        self.BR = BR()
-        self.CS = CS()
-        self.USER0 = USER0()
-        self.USER1 = USER1()
-        self.USER2 = USER2()
-        self.USER3 = USER3()
-        self.__stop = False
+    def reset_data(self):
+        self.BR.resest()
+        self.CS.resest()
+        self.USER0.resest()
+        self.USER1.resest()
+        self.USER2.resest()
+        self.USER3.resest()
 
-    def get_count(self):
-        return self.count
+    # def stop(self):
+    #     self.__stop = True
 
-    def stop(self):
-        self.__stop = True
+    # def collect_data(self, interval):
+    #     Logger.info('Start Collect Signal Data')
+    #     Utility.append_work(target=self.__CollectSignalData, interval=interval, allow_dupl=False)
 
-    def getBR(self):
-        return self.BR
+    # def __CollectSignalData(self, interval):
+    #     count = 0
+    #     while True:
+    #         if self.__stop:
+    #             break
+    #         self.BR.update(count)
+    #         self.CS.update(count)
+    #         self.USER0.update(count)
+    #         self.USER1.update(count)
+    #         self.USER2.update(count)
+    #         self.USER3.update(count)
+    #         count += 1
+    #         sleep(interval)
 
-    def collect_data(self, interval):
-        Logger.info('Start Collect Signal Data')
-        Utility.append_work(target=self.__CollectSignalData, interval=interval, allow_dupl=False)
-
-    def __CollectSignalData(self, interval):
-        while True:
-            if self.__stop:
-                break
-            self.BR.update(self.count)
-            self.count += 1
-            sleep(interval)
+    def updata(self, count):
+        for f in filter_list:
+            self.__getattribute__(f).update(count)
+            # self.BR.update(count)
+            # self.CS.update(count)
+            # self.USER0.update(count)
+            # self.USER1.update(count)
+            # self.USER2.update(count)
+            # self.USER3.update(count)
 
 
 class RSSI(object):
-    def __init__(self):
+    def __init__(self, axes, color, label, linestyle, linewidth=0.75):
+        self.axes = axes
+        self.color = color
+        self.label = label
+        self.linestyle = linestyle
+        self.linewidth = linewidth
         self._singal = np.array([])
         self._sequence = np.array([])
+        self._line, = self.axes.plot(self._singal, self._sequence, label=self.label, color=self.color,
+                                     linewidth=self.linewidth,
+                                     linestyle=self.linestyle)
 
     def Append(self, signal, number):
         self._singal = np.append(self._singal, signal)
         self._sequence = np.append(self._sequence, number)
+        self._line.set_data(self._sequence, self._singal, )
 
     def GetData(self):
         return self._sequence, self._singal
 
+    def GetLine(self):
+        self._line
+
+    def Init(self):
+        self._singal = np.array([])
+        self._sequence = np.array([])
+        self._line.set_data(self._sequence, self._singal, )
+
 
 class Aerial(object):
-    def __init__(self):
-        self.A0 = RSSI()
-        self.A1 = RSSI()
-        self.A2 = RSSI()
-        self.A3 = RSSI()
+    def __init__(self, axes, lable, color):
+        self.label = lable
+        self.axes = axes
+        self.A0 = RSSI(label=self.label + u'_0', color=color, linestyle='-', axes=axes)
+        self.A1 = RSSI(label=self.label + u'_1', color=color, linestyle='-.', axes=axes)
+        self.A2 = RSSI(label=self.label + u'_2', color=color, linestyle=':', axes=axes)
+        self.A3 = RSSI(label=self.label + u'_3', color=color, linestyle='--', axes=axes)
+
+    def resest(self):
+        self.A0.Init()
+        self.A1.Init()
+        self.A2.Init()
+        self.A3.Init()
 
     def Aerials(self):
         return self.A0, self.A1, self.A2, self.A3
+
+    def A0_Line(self):
+        return self.A0.GetLine()
+
+    def A1_Line(self):
+        return self.A1.GetLine()
+
+    def A2_Line(self):
+        return self.A2.GetLine()
+
+    def A3_Line(self):
+        return self.A3.GetLine()
 
     def A0_Data(self):
         return self.A0.GetData()
@@ -179,19 +222,12 @@ class Aerial(object):
 
 
 class BR(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
-        # 0x450 天线0的模拟AGC增益
-        # 0x451 天线0的数字AGC增益
-        # 0x452 天线1的模拟AGC增益
-        # 0x453 天线1的数字AGC增益
-        # 0x454 天线2的模拟AGC增益
-        # 0x455 天线2的数字AGC增益
-        # 0x456 天线3的模拟AGC增益
-        # 0x457 天线3的数字AGC增益
+    def __init__(self, axes, label='BR', color='g'):
+        Aerial.__init__(self, axes, label, color)
 
     def update(self, i):
         # s=simulation  d=digit  p=placeholder
+
         s0, d0, s1, d1 = self._read_register(0x60680450)
         s2, d2, s3, d3 = self._read_register(0x60680454)
         self.A0.Append(self._merge_signal(s0, d0), i)
@@ -201,8 +237,8 @@ class BR(Aerial):
 
 
 class CS(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
+    def __init__(self, axes, label='CS', color='b'):
+        Aerial.__init__(self, axes, label, color)
         # 0x442 天线0的模拟AGC增益
         # 0x443 天线0的数字AGC增益
         # 0x444 天线1的模拟AGC增益
@@ -224,8 +260,8 @@ class CS(Aerial):
 
 
 class USER0(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
+    def __init__(self, axes, label='User0', color='r'):
+        Aerial.__init__(self, axes, label, color)
 
         # 0x40a
         # usr0天线0的模拟AGC增益
@@ -246,7 +282,7 @@ class USER0(Aerial):
 
     def update(self, i):
         p0, p1, s0, d0 = self._read_register(0x60680408)
-        s1, d1, s2, d2 = self._read_register(0x6068044c)
+        s1, d1, s2, d2 = self._read_register(0x6068040c)
         s3, d3, p2, p3 = self._read_register(0x60680410)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
@@ -255,8 +291,8 @@ class USER0(Aerial):
 
 
 class USER1(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
+    def __init__(self, axes, label='User1', color='c'):
+        Aerial.__init__(self, axes, label, color)
         #
         # 0x418
         # usr1天线0的模拟AGC增益
@@ -285,8 +321,9 @@ class USER1(Aerial):
 
 
 class USER2(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
+    def __init__(self, axes, label='User2', color='m'):
+        Aerial.__init__(self, axes, label, color)
+
         # 0x426
         # usr2天线0的模拟AGC增益
         # 0x427
@@ -315,8 +352,8 @@ class USER2(Aerial):
 
 
 class USER3(Aerial):
-    def __init__(self):
-        Aerial.__init__(self)
+    def __init__(self, axes, label='User3', color='y'):
+        Aerial.__init__(self, axes, label, color)
         # 0x434
         # usr3天线0的模拟AGC增益
         # 0x435
