@@ -182,4 +182,7 @@ class Toolbar(NavigationToolbar2Wx):
     def save_figure(self, event):
         self.mPause(True)
         super(Toolbar, self).save_figure(event)
-        self.mPause(False)
+        if self.ctrl_zoom.IsToggled() or self.ctrl_pan.IsToggled():
+            self.mPause(True)
+        else:
+            self.mPause(False)

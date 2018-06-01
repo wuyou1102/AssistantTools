@@ -39,7 +39,7 @@ class Register(object):
     def Release(self):
         return self.__DeviceRelease()
 
-    def Reconnect(self, times, in):
+    def Reconnect(self, times=1, interval=0):
         import time
         Logger.info("Try reconnect the register device:")
         for x in range(1, times + 1):
@@ -47,14 +47,13 @@ class Register(object):
             result = self.Init()
             if result:
                 return True
-            time.sleep(1)
+            time.sleep(interval)
         return False
 
     def Set(self, address, data):
         if self.lock.acquire():
             try:
                 return self.__set(address=address, data=data)
-
             finally:
                 self.lock.release()
 
@@ -63,19 +62,36 @@ class Register(object):
         Logger.debug(
             'Set  Address \"%s\" value as \"%s\" and func result is  \"%s\"' % (hex(address), data, result))
         if result != -2147483647:
-            if self.Reconnect():
+            if self.Reconnect(times=1, interval=1):
                 return self.__set(address=address, data=data)
             return False
         return True
 
     def Get(self, address):
-        Logger.info('ssss')
         if self.lock.acquire():
             try:
                 return self.__get(address=address)
             finally:
                 self.lock.release()
-        Logger.info('dddd')
+
+    def GetByte(self, address):
+        if self.lock.acquire():
+            try:
+                return self.__get_byte(address=address)
+            finally:
+                self.lock.release()
+
+    def __get_byte(self, address):
+        tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
+        result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
+        if result != 1:
+            if self.Reconnect():
+                return self.__get_byte(address=address)
+            return False
+            # raise IOError('Can not get address info.')
+        Logger.debug(
+            'Read Address \"%s\" byte is \"%s\" and func result is  \"%s\"' % (hex(address), repr(tmp_str.raw), result))
+        return tmp_str.raw
 
     def __get(self, address):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
@@ -106,10 +122,4 @@ class Register(object):
 if __name__ == '__main__':
     r = Register()
     r.Init()
-    r.Get(0x60680000)
-    r.Set(0x60680000, '000B0201')
-    Logger.info('After set and read again.')
-    r.Get(0x60680000)
-    while True:
-        if not r.Get(0x00000004):
-            r.Init()
+    r.GetByte(0x60680000)
