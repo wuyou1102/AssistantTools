@@ -164,7 +164,10 @@ class RSSI(object):
     def Append(self, signal, number):
         self._singal = np.append(self._singal, signal)
         self._sequence = np.append(self._sequence, number)
-        self._line.set_data(self._sequence, self._singal, )
+        if self.NeedDisplay():
+            self._line.set_data(self._sequence, self._singal, )
+        else:
+            self._line.set_data([], [], )
 
     def GetData(self):
         return self._sequence, self._singal
@@ -179,6 +182,9 @@ class RSSI(object):
 
     def LineConfig(self):
         return Config.Line.get(self.label)
+
+    def NeedDisplay(self):
+        return self.LineConfig()[0]
 
 
 class Aerial(object):

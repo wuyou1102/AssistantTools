@@ -3,17 +3,13 @@
 import wx
 
 import numpy as np
-
 import matplotlib
-
+# from matplotlib import pyplot
 # matplotlib采用WXAgg为后台,将matplotlib嵌入wxPython中
-matplotlib.use("WXAgg")
+# matplotlib.use("WXAgg")
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2Wx
-from matplotlib.ticker import MultipleLocator, FuncFormatter, FormatStrFormatter
-
-import pylab
-from matplotlib import pyplot
+from matplotlib.ticker import MultipleLocator
 
 
 ######################################################################################
@@ -37,12 +33,9 @@ class MatplotPanel(wx.Panel):
         self.init_axis()
 
         ###方便调用
-        self.pylab = pylab
-        self.pl = pylab
-        self.pyplot = pyplot
-        self.numpy = np
+
         self.np = np
-        self.plt = pyplot
+
 
     def init_axis(self):
         self.axis([0, 100, -90, -30])  # 设置默认坐标系
@@ -188,10 +181,6 @@ class Toolbar(NavigationToolbar2Wx):
     def stop(self, event):
         self.mStop()
 
-    def zoom(self, event):
-        self.mPause(self.ctrl_zoom.IsToggled())
-        super(Toolbar, self).zoom(event)
-
     def release_zoom(self, event):
         super(Toolbar, self).release_zoom(event)
         self.mSetAxis()
@@ -208,13 +197,53 @@ class Toolbar(NavigationToolbar2Wx):
         if self.setting_dialog:
             self.setting_dialog.Destroy()
         else:
-            self.setting_dialog = SettingDialog(size=(150, 400))
+            self.setting_dialog = SettingDialog(size=(600, 200))
             self.setting_dialog.Show()
 
 
 from lib.UserInterface.Dialog import DialogBase
+from lib.UserInterface.libs import Config
 
 
 class SettingDialog(DialogBase.DialogBase):
     def __init__(self, size, positon=wx.DefaultPosition):
         DialogBase.DialogBase.__init__(self, name="Setting", size=size, pos=positon)
+        Main = wx.BoxSizer(wx.HORIZONTAL)
+        BR_Sizer = self.__init_checkbox("BR")
+        CS_Sizer = self.__init_checkbox("CS")
+        User0_Sizer = self.__init_checkbox("User0")
+        User1_Sizer = self.__init_checkbox("User1")
+        User2_Sizer = self.__init_checkbox("User2")
+        User3_Sizer = self.__init_checkbox("User3")
+
+        Main.Add(BR_Sizer, 1, wx.EXPAND, 5)
+        Main.Add(CS_Sizer, 1, wx.EXPAND, 5)
+        Main.Add(User0_Sizer, 1, wx.EXPAND, 5)
+        Main.Add(User1_Sizer, 1, wx.EXPAND, 5)
+        Main.Add(User2_Sizer, 1, wx.EXPAND, 5)
+        Main.Add(User3_Sizer, 1, wx.EXPAND, 5)
+        self.SetSizer(Main)
+
+    def __init_checkbox(self, label):
+        Sizer = wx.BoxSizer(wx.VERTICAL)
+        for x in range(4):
+            tmp = u"%s_%s" % (label, x)
+            CB = wx.CheckBox(self, wx.ID_ANY, tmp, wx.DefaultPosition, wx.DefaultSize, 0)
+            CB.Bind(wx.EVT_CHECKBOX, self.on_check)
+            CB.SetValue(self.get_display(tmp))
+            Sizer.Add(CB, 0, wx.ALL, 5)
+        return Sizer
+
+    def on_check(self, event):
+        obj = event.GetEventObject()
+        self.set_display(obj.GetLabel(), obj.IsChecked())
+
+    def get_display(self, key):
+        print key
+
+        print Config.Line.get(key)
+
+        return Config.Line.get(key)[0]
+
+    def set_display(self, key, boolean):
+        Config.Line.get(key)[0] = boolean
