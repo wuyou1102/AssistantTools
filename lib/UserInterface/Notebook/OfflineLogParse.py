@@ -3,7 +3,7 @@ import wx
 from NotebookBase import NotebookBase
 from lib import Utility
 from wx import CallAfter
-from lib.UserInterface import OfflineLibs
+from lib.UserInterface import libs
 from wx.lib.splitter import MultiSplitterWindow
 from ObjectListView import ObjectListView, ColumnDefn, Filter
 import re
@@ -168,7 +168,7 @@ class DataModule(object):
         self.__list_view.rowFormatter = self.__set_row_formatter
         self.__data = []
         self.__line_mapping_file = dict()
-        self.__patterns = [OfflineLibs.trace_patterns, OfflineLibs.e2e_patterns, OfflineLibs.NPR_patterns]
+        self.__patterns = [libs.trace_patterns, libs.e2e_patterns, libs.NPR_patterns]
         self.__buff = []
         self.__log_count = 0
 
@@ -194,23 +194,23 @@ class DataModule(object):
         self.__log_count += 1
         first_line = block[0]
         if ' NPR proc recv stack_primitive ' in first_line:
-            npr = OfflineLibs.NprMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            npr = libs.NprMessage(_no=self.__log_count, block=block, line=line_nubmer)
             self.__check_last_msg()
             self.__data.append(npr)
             CallAfter(self.__list_view.AddObject, npr)
         elif 'Print e2e msg header information start' in first_line:
-            e2e = OfflineLibs.e2eMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            e2e = libs.e2eMessage(_no=self.__log_count, block=block, line=line_nubmer)
             self.__data.append(e2e)
             # CallAfter(self.__list_view.AddObject, e2e)
         elif 'air message begin ' in first_line:
-            air = OfflineLibs.AirMessage(_no=self.__log_count, block=block, line=line_nubmer)
+            air = libs.AirMessage(_no=self.__log_count, block=block, line=line_nubmer)
             self.__merge_air_and_e2e(air=air)
             self.__data.append(air)
             CallAfter(self.__list_view.AddObject, air)
 
     def __merge_air_and_e2e(self, air):
         last_msg = self.__data[-1]
-        if type(last_msg) == OfflineLibs.e2eMessage:
+        if type(last_msg) == libs.e2eMessage:
             if air.merge(last_msg):
                 self.__data.pop(-1)
                 self.__merge_air_and_e2e(air)
@@ -224,7 +224,7 @@ class DataModule(object):
         if not self.__data:
             return
         last_msg = self.__data[-1]
-        if type(last_msg) == OfflineLibs.e2eMessage:
+        if type(last_msg) == libs.e2eMessage:
             CallAfter(self.__list_view.AddObject, last_msg)
 
     def __set_columns(self):
@@ -242,7 +242,7 @@ class DataModule(object):
     @staticmethod
     def __set_row_formatter(list_view, item):
         # 优先级高的需要写在前面
-        from lib.UserInterface.OfflineLibs import Colour
+        from lib.UserInterface.libs import Colour
         if item._type == 'e2eMessage':
             list_view.SetBackgroundColour(wx.RED)
         elif item._prot == "S_SMAC_BR":

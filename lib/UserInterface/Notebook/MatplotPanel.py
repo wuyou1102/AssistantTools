@@ -27,7 +27,9 @@ class MatplotPanel(wx.Panel):
         self.NavigationToolbar = Toolbar(self.FigureCanvas,
                                          mPause=parent.PauseDraw,
                                          mStart=parent.StartDraw,
-                                         mStop=parent.StopDraw)
+                                         mStop=parent.StopDraw,
+                                         mSetAxis=parent.SetAxis
+                                         )
         self.TopBoxSizer = wx.BoxSizer(wx.VERTICAL)
         self.TopBoxSizer.Add(self.FigureCanvas, proportion=-10, border=2, flag=wx.ALL | wx.EXPAND)
         self.TopBoxSizer.Add(self.NavigationToolbar, 0, wx.ALL | wx.EXPAND)
@@ -43,14 +45,14 @@ class MatplotPanel(wx.Panel):
         self.plt = pyplot
 
     def init_axis(self):
-        self.axis([0, 100, -130, -30])  # 设置默认坐标系
+        self.axis([0, 100, -90, -30])  # 设置默认坐标系
         self.axes.tick_params(labelsize=8)  # 设置坐标系哥都文字大小
-        self.axes.xaxis.set_major_locator(MultipleLocator(10))  # 设置x轴主坐标刻度为5
+        self.axes.xaxis.set_major_locator(MultipleLocator(5))  # 设置x轴主坐标刻度为5
         self.axes.xaxis.set_minor_locator(MultipleLocator(1))  # 设置x轴次坐标刻度为1
-        self.axes.yaxis.set_major_locator(MultipleLocator(5))  # 设置y轴主坐标刻度为10
+        self.axes.yaxis.set_major_locator(MultipleLocator(5))  # 设置y轴主坐标刻度为5
         self.axes.yaxis.set_minor_locator(MultipleLocator(1))
         self.axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
-        self.axes.legend()
+        self.axes.yaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
         self.UpdatePlot()
 
     def UpdatePlot(self):
@@ -58,7 +60,7 @@ class MatplotPanel(wx.Panel):
         self.FigureCanvas.draw()
 
     def axis(self, *args, **kwargs):
-        self.axes.axis(*args, **kwargs)
+        return self.axes.axis(*args, **kwargs)
 
     def plot(self, *args, **kwargs):
         '''#最常用的绘图命令plot '''
@@ -145,7 +147,7 @@ class MatplotPanel(wx.Panel):
 
 
 class Toolbar(NavigationToolbar2Wx):
-    def __init__(self, canvas, mStart, mPause, mStop):
+    def __init__(self, canvas, mStart, mPause, mStop, mSetAxis):
         self.toolitems = (
             ('Home', 'Reset original view', 'home', 'home'),
             ('Back', 'Back to  previous view', 'back', 'back'),
@@ -155,15 +157,26 @@ class Toolbar(NavigationToolbar2Wx):
             ('Save', 'Save the figure', 'filesave', 'save_figure'),
             ('Start', 'Start draw the view', 'start', 'start'),
             ('Stop', 'Stop draw the view', 'stop', 'stop'),
+            ('Setting', 'Set up the line', 'subplots', 'setting')
 
         )
         self.mPause = mPause
         self.mStart = mStart
         self.mStop = mStop
+        self.mSetAxis = mSetAxis
+        self.setting_dialog = None
 
         NavigationToolbar2Wx.__init__(self, canvas=canvas)
         self.ctrl_pan = self.FindById(self.wx_ids['Pan'])
         self.ctrl_zoom = self.FindById(self.wx_ids['Zoom'])
+
+    def back(self, event):
+        super(Toolbar, self).back(event)
+        self.mSetAxis()
+
+    def forward(self, event):
+        super(Toolbar, self).forward(event)
+        self.mSetAxis()
 
     def pan(self, event):
         self.mPause(self.ctrl_pan.IsToggled())
@@ -179,6 +192,10 @@ class Toolbar(NavigationToolbar2Wx):
         self.mPause(self.ctrl_zoom.IsToggled())
         super(Toolbar, self).zoom(event)
 
+    def release_zoom(self, event):
+        super(Toolbar, self).release_zoom(event)
+        self.mSetAxis()
+
     def save_figure(self, event):
         self.mPause(True)
         super(Toolbar, self).save_figure(event)
@@ -186,3 +203,18 @@ class Toolbar(NavigationToolbar2Wx):
             self.mPause(True)
         else:
             self.mPause(False)
+
+    def setting(self, event):
+        if self.setting_dialog:
+            self.setting_dialog.Destroy()
+        else:
+            self.setting_dialog = SettingDialog(size=(150, 400))
+            self.setting_dialog.Show()
+
+
+from lib.UserInterface.Dialog import DialogBase
+
+
+class SettingDialog(DialogBase.DialogBase):
+    def __init__(self, size, positon=wx.DefaultPosition):
+        DialogBase.DialogBase.__init__(self, name="Setting", size=size, pos=positon)

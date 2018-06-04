@@ -1,6 +1,6 @@
 # encoding: utf-8
 from lib.UserInterface.Dialog import DialogBase
-from lib.UserInterface import OfflineLibs
+from lib.UserInterface import libs
 import wx
 from ObjectListView import ObjectListView, ColumnDefn, Filter
 from lib import Utility
@@ -210,8 +210,8 @@ class LogDialog(DialogBase.DialogBase):
 
     def __init_data(self):
         line_number = self.obj._line
-        start_line = line_number - OfflineLibs.FORWARD_ROW if line_number > OfflineLibs.FORWARD_ROW else 0
-        end_line = line_number + len(self.obj._block) + OfflineLibs.BACKWARD_ROW
+        start_line = line_number - libs.FORWARD_ROW if line_number > libs.FORWARD_ROW else 0
+        end_line = line_number + len(self.obj._block) + libs.BACKWARD_ROW
         files = self.__sorted_files(files=self.line_mapping_file.values())
         objects = list()
         for obj in self.yield_object(files=files, start=start_line, end=end_line):
@@ -274,11 +274,11 @@ class LogDialog(DialogBase.DialogBase):
     @staticmethod
     def row_formatter(OLV, item):
         if item._marked:
-            OLV.SetBackgroundColour(OfflineLibs.LightCyan)
+            OLV.SetBackgroundColour(libs.LightCyan)
         elif item._flag:
-            OLV.SetBackgroundColour(OfflineLibs.LemonChiffon)
+            OLV.SetBackgroundColour(libs.LemonChiffon)
         else:
-            OLV.SetBackgroundColour(OfflineLibs.White)
+            OLV.SetBackgroundColour(libs.White)
 
 
 UTF16_LE_BOM = "\xff\x7f"

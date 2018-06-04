@@ -22,12 +22,13 @@ class DrawSNR(NotebookBase):
         MplSizer.Add(self.MPL, 1, wx.EXPAND)
         MainSizer.Add(MplSizer, 1, wx.EXPAND | wx.ALL, 5)
         self.mAnim = None
-        self.interval = 0.5
+        self.interval = 0.3
         self.lines = list()
         self.count = 0
         self.SD = SignalData(self.MPL.axes)
         self.__pause = False
         self.SetSizer(MainSizer)
+        self.SetAxis()
 
     def StartDraw(self):
         # if not Utility.is_alive('__CollectSignalData'):
@@ -35,20 +36,28 @@ class DrawSNR(NotebookBase):
         # else:
         #     return True
         # self.__pause = False
+        # self.SD.collect_data(self.interval)
         if self.mAnim:
             Logger.info("Draw is already running.")
             return True
-
-        # self.SD.collect_data(self.interval)
+        self.count = 0
+        self.MPL.axis([0, 100, None, None])
         self.SD.reset_data()
         self.mAnim = animation.FuncAnimation(self.MPL.Figure, self.UpdateSignal, frames=100,
                                              interval=self.interval * 1000,
                                              blit=True)
 
+    def SetAxis(self):
+        x0, x1, y0, y1 = self.MPL.axis()
+        abs_y = abs(y1 - y0)
+        if abs_y <= 10:
+            self.MPL.yticker(major_ticker=1, minor_ticker=1)
+        elif 10 < abs_y:
+            self.MPL.yticker(major_ticker=5, minor_ticker=1)
+        self.MPL.xlim(x0, x0 + 100)
+
     def UpdateSignal(self, i):
-        if self.__pause:
-            return self.lines
-        if self.count>100:
+        if self.count > 100 and not self.__pause:
             self.MPL.axis([self.count - 100, self.count, None, None])
         self.SD.updata(count=self.count)
         self.count += 1
@@ -94,6 +103,7 @@ class SignalData(object):
         self.USER1 = USER1(self.axes)
         self.USER2 = USER2(self.axes)
         self.USER3 = USER3(self.axes)
+        self.axes.legend(loc='best', ncol=6, fontsize='x-small', framealpha=0.4)
 
     def reset_data(self):
         self.BR.resest()
@@ -125,21 +135,24 @@ class SignalData(object):
     #         sleep(interval)
 
     def updata(self, count):
-        for f in filter_list:
-            self.__getattribute__(f).update(count)
-            # self.BR.update(count)
-            # self.CS.update(count)
-            # self.USER0.update(count)
-            # self.USER1.update(count)
-            # self.USER2.update(count)
-            # self.USER3.update(count)
+        # for f in filter_list:
+        #     self.__getattribute__(f.split('_')[0]).update(count)
+        self.BR.update(count)
+        self.CS.update(count)
+        self.USER0.update(count)
+        self.USER1.update(count)
+        self.USER2.update(count)
+        self.USER3.update(count)
+
+
+from lib.UserInterface.libs import Config
 
 
 class RSSI(object):
-    def __init__(self, axes, color, label, linestyle, linewidth=0.75):
+    def __init__(self, axes, label, linestyle, linewidth=0.75):
         self.axes = axes
-        self.color = color
         self.label = label
+        self.color = self.LineConfig()[1]
         self.linestyle = linestyle
         self.linewidth = linewidth
         self._singal = np.array([])
@@ -157,22 +170,25 @@ class RSSI(object):
         return self._sequence, self._singal
 
     def GetLine(self):
-        self._line
+        return self._line
 
     def Init(self):
         self._singal = np.array([])
         self._sequence = np.array([])
         self._line.set_data(self._sequence, self._singal, )
 
+    def LineConfig(self):
+        return Config.Line.get(self.label)
+
 
 class Aerial(object):
     def __init__(self, axes, lable, color):
         self.label = lable
         self.axes = axes
-        self.A0 = RSSI(label=self.label + u'_0', color=color, linestyle='-', axes=axes)
-        self.A1 = RSSI(label=self.label + u'_1', color=color, linestyle='-.', axes=axes)
-        self.A2 = RSSI(label=self.label + u'_2', color=color, linestyle=':', axes=axes)
-        self.A3 = RSSI(label=self.label + u'_3', color=color, linestyle='--', axes=axes)
+        self.A0 = RSSI(label=self.label + u'_0', linestyle='-', axes=axes)
+        self.A1 = RSSI(label=self.label + u'_1', linestyle='--', axes=axes)
+        self.A2 = RSSI(label=self.label + u'_2', linestyle='-', axes=axes)
+        self.A3 = RSSI(label=self.label + u'_3', linestyle='--', axes=axes)
 
     def resest(self):
         self.A0.Init()
@@ -219,6 +235,9 @@ class Aerial(object):
         if simulation and digit:
             return -ord(simulation) - ord(digit)
         return None
+
+
+from lib.UserInterface.libs import Config
 
 
 class BR(Aerial):
