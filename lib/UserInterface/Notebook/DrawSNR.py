@@ -22,7 +22,7 @@ class DrawSNR(NotebookBase):
         MplSizer.Add(self.MPL, 1, wx.EXPAND)
         MainSizer.Add(MplSizer, 1, wx.EXPAND | wx.ALL, 5)
         self.mAnim = None
-        self.interval = 0.3
+        self.interval = 1
         self.lines = list()
         self.count = 0
         self.SD = SignalData(self.MPL.axes)

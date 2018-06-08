@@ -65,7 +65,7 @@ class Register(object):
     def __set(self, address, data):
         result = self.__SetReg(self.__ConvertAddress(address), self.__ConvertData(data))
         Logger.debug(
-            'Set  Address \"%s\" value as \"%s\" and func result is  \"%s\"' % (hex(address), data, result))
+            'Write Address \"%s\" value as \"%s\" and func result is  \"%s\"' % (hex(address), data, result))
         if not result:
             if self.Reconnect(times=1, interval=1):
                 return self.__set(address=address, data=data)
@@ -107,7 +107,7 @@ class Register(object):
             return False
         value = binascii.b2a_hex(tmp_str.raw[::-1]).upper()
         Logger.debug(
-            'Read Address \"%s\" value is \"%s\" and func result is  \"%s\"' % (hex(address), value, result))
+            'Read  Address \"%s\" value is \"%s\" and func result is  \"%s\"' % (hex(address), value, result))
         return value
 
     def __ConvertAddress(self, address):
