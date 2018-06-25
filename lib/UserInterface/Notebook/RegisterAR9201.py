@@ -331,6 +331,8 @@ class DataGridFF(grid.Grid):  ##, mixins.GridAutoEditMixin):
     def __change_cell_value(self, row, col, value):
         self.SetAddressValue(col=col, row=row, value=value.upper())
         r_value = self.GetAddressValue(row=row, col=col)
+        if not r_value:
+            return False
         if value != binascii.b2a_hex(r_value[col % 4]):
             Logger.warn("Cell (%d,%d) can not be set as \"%s\" ." % (row, col, value))
         if self.__updata_cell_value(row=row, col=col, value=r_value):

@@ -193,14 +193,14 @@ class Aerial(object):
         self.axes = axes
         self.A0 = RSSI(label=self.label + u'_0', linestyle='-', axes=axes)
         self.A1 = RSSI(label=self.label + u'_1', linestyle='--', axes=axes)
-        self.A2 = RSSI(label=self.label + u'_2', linestyle='-', axes=axes)
-        self.A3 = RSSI(label=self.label + u'_3', linestyle='--', axes=axes)
+        # self.A2 = RSSI(label=self.label + u'_2', linestyle='-', axes=axes)
+        # self.A3 = RSSI(label=self.label + u'_3', linestyle='--', axes=axes)
 
     def resest(self):
         self.A0.Init()
         self.A1.Init()
-        self.A2.Init()
-        self.A3.Init()
+        # self.A2.Init()
+        # self.A3.Init()
 
     def Aerials(self):
         return self.A0, self.A1, self.A2, self.A3
@@ -252,13 +252,12 @@ class BR(Aerial):
 
     def update(self, i):
         # s=simulation  d=digit  p=placeholder
-
         s0, d0, s1, d1 = self._read_register(0x60680450)
-        s2, d2, s3, d3 = self._read_register(0x60680454)
+        # s2, d2, s3, d3 = self._read_register(0x60680454)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class CS(Aerial):
@@ -277,11 +276,11 @@ class CS(Aerial):
         # s=simulation  d=digit  p=placeholder
         p0, p1, s0, d0 = self._read_register(0x60680440)
         s1, d1, s2, d2 = self._read_register(0x60680444)
-        s3, d3, p2, p3 = self._read_register(0x60680448)
+        # s3, d3, p2, p3 = self._read_register(0x60680448)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class USER0(Aerial):
@@ -308,11 +307,11 @@ class USER0(Aerial):
     def update(self, i):
         p0, p1, s0, d0 = self._read_register(0x60680408)
         s1, d1, s2, d2 = self._read_register(0x6068040c)
-        s3, d3, p2, p3 = self._read_register(0x60680410)
+        # s3, d3, p2, p3 = self._read_register(0x60680410)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class USER1(Aerial):
@@ -338,11 +337,11 @@ class USER1(Aerial):
 
     def update(self, i):
         s0, d0, s1, d1 = self._read_register(0x60680418)
-        s2, d2, s3, d3 = self._read_register(0x6068041c)
+        # s2, d2, s3, d3 = self._read_register(0x6068041c)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class USER2(Aerial):
@@ -369,11 +368,11 @@ class USER2(Aerial):
     def update(self, i):
         p0, p1, s0, d0 = self._read_register(0x60680424)
         s1, d1, s2, d2 = self._read_register(0x60680428)
-        s3, d3, p2, p3 = self._read_register(0x6068042c)
+        # s3, d3, p2, p3 = self._read_register(0x6068042c)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class USER3(Aerial):
@@ -398,11 +397,11 @@ class USER3(Aerial):
 
     def update(self, i):
         s0, d0, s1, d1 = self._read_register(0x60680434)
-        s2, d2, s3, d3 = self._read_register(0x60680438)
+        # s2, d2, s3, d3 = self._read_register(0x60680438)
         self.A0.Append(self._merge_signal(s0, d0), i)
         self.A1.Append(self._merge_signal(s1, d1), i)
-        self.A2.Append(self._merge_signal(s2, d2), i)
-        self.A3.Append(self._merge_signal(s3, d3), i)
+        # self.A2.Append(self._merge_signal(s2, d2), i)
+        # self.A3.Append(self._merge_signal(s3, d3), i)
 
 
 class SNR(object):

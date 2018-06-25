@@ -1,0 +1,2 @@
+CLS = '*CLS'
+ESE='*ESE'

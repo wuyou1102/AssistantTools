@@ -226,7 +226,7 @@ class SettingDialog(DialogBase.DialogBase):
 
     def __init_checkbox(self, label):
         Sizer = wx.BoxSizer(wx.VERTICAL)
-        for x in range(4):
+        for x in range(2):
             tmp = u"%s_%s" % (label, x)
             CB = wx.CheckBox(self, wx.ID_ANY, tmp, wx.DefaultPosition, wx.DefaultSize, 0)
             CB.Bind(wx.EVT_CHECKBOX, self.on_check)
@@ -239,10 +239,6 @@ class SettingDialog(DialogBase.DialogBase):
         self.set_display(obj.GetLabel(), obj.IsChecked())
 
     def get_display(self, key):
-        print key
-
-        print Config.Line.get(key)
-
         return Config.Line.get(key)[0]
 
     def set_display(self, key, boolean):

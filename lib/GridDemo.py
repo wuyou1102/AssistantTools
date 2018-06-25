@@ -14,7 +14,7 @@ class SimpleGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         # 打印log信息
         self.log = log
         self.moveTo = None
-
+        # self.SetSelectionMode(3)
         self.Bind(wx.EVT_IDLE, self.OnIdle)
         # 创建一个25X25的电子表格
         self.CreateGrid(25, 25)  # , gridlib.Grid.SelectRows)
@@ -144,7 +144,7 @@ class SimpleGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self.OnEditorShown)
         self.Bind(gridlib.EVT_GRID_EDITOR_HIDDEN, self.OnEditorHidden)
         self.Bind(gridlib.EVT_GRID_EDITOR_CREATED, self.OnEditorCreated)
-
+        self.SetSelectionMode(3)
     def OnCellLeftClick(self, evt):
         self.log.write("OnCellLeftClick: (%d,%d) %s\n" %
                        (evt.GetRow(), evt.GetCol(), evt.GetPosition()))
