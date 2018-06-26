@@ -4,6 +4,7 @@ from wx import grid
 from NotebookBase import NotebookBase
 from lib import Utility
 from lib.Config import Instrument
+import time
 
 Logger = Utility.getLogger(__name__)
 import binascii
@@ -31,6 +32,7 @@ class RegisterAR9201(NotebookBase):
         LeftSizer = wx.BoxSizer(wx.VERTICAL)
         RightSizer = wx.BoxSizer(wx.VERTICAL)
         self.RegisterMapping = {
+            "chengwei": 0x60630000,
             "BB AXI configure": 0x60640000,
             "BB APB configure": 0x60680000,
         }
@@ -38,33 +40,40 @@ class RegisterAR9201(NotebookBase):
         self.LB_AddressCategory = wx.ListBox(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(160, -1),
                                              choices=self.RegisterMapping.keys())
         self.LB_AddressCategory.Bind(wx.EVT_LISTBOX, self.on_item_select)
-        refresh_button = wx.Button(self, wx.ID_ANY, "Refresh", wx.DefaultPosition, wx.DefaultSize, 0)
-        import_button = wx.Button(self, wx.ID_ANY, "Import", wx.DefaultPosition, wx.DefaultSize, 0)
-        export_button = wx.Button(self, wx.ID_ANY, "Export", wx.DefaultPosition, wx.DefaultSize, 0)
-        refresh_button.Bind(wx.EVT_BUTTON, self.on_refresh)
-        export_button.Bind(wx.EVT_BUTTON, self.on_export)
-        import_button.Bind(wx.EVT_BUTTON, self.on_import)
 
         AddressSizer = self.__init_address()
         BitSizer = self.__init_bit()
-
+        self.AF_flag = True
         self.DG = DataGridFF(self)
         RightTopSizer = wx.BoxSizer(wx.HORIZONTAL)
-
+        OpSizer = self.__init_operation()
         LeftSizer.Add(self.LB_AddressCategory, 1, wx.EXPAND | wx.ALL, 5)
-        LeftSizer.Add(refresh_button, 0, wx.EXPAND | wx.ALL, 5)
-        LeftSizer.Add(import_button, 0, wx.EXPAND | wx.ALL, 5)
-        LeftSizer.Add(export_button, 0, wx.EXPAND | wx.ALL, 5)
+        LeftSizer.Add(OpSizer, 0, wx.EXPAND | wx.ALL, 5)
 
-        RightTopSizer.Add(AddressSizer, 1, wx.EXPAND)
-        RightTopSizer.Add(BitSizer, 1, wx.EXPAND | wx.LEFT, 5)
+        RightTopSizer.Add(AddressSizer, 0, wx.EXPAND)
+        RightTopSizer.Add(BitSizer, 0, wx.LEFT, 5)
 
         RightSizer.Add(RightTopSizer, 0, wx.EXPAND | wx.ALL, 0)
-        RightSizer.Add(self.DG, 1, wx.EXPAND | wx.ALL, 0)
+        RightSizer.Add(self.DG, 1, wx.EXPAND | wx.TOP, 1)
 
-        MainSizer.Add(LeftSizer, 0, wx.EXPAND | wx.ALL, 1)
-        MainSizer.Add(RightSizer, 1, wx.EXPAND | wx.ALL, 1)
+        MainSizer.Add(LeftSizer, 1, wx.EXPAND | wx.ALL, 1)
+        MainSizer.Add(RightSizer, 0, wx.EXPAND | wx.ALL, 1)
         self.SetSizer(MainSizer)
+
+    def __init_operation(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        refresh_button = wx.Button(self, wx.ID_ANY, u"Refresh", wx.DefaultPosition, wx.DefaultSize, 0)
+        import_button = wx.Button(self, wx.ID_ANY, u"Import", wx.DefaultPosition, wx.DefaultSize, 0)
+        export_button = wx.Button(self, wx.ID_ANY, u"Export", wx.DefaultPosition, wx.DefaultSize, 0)
+
+        refresh_button.Bind(wx.EVT_BUTTON, self.on_refresh)
+        refresh_button.Bind(wx.EVT_RIGHT_DCLICK, self.auto_refresh)
+        export_button.Bind(wx.EVT_BUTTON, self.on_export)
+        import_button.Bind(wx.EVT_BUTTON, self.on_import)
+        sizer.Add(refresh_button, 1, wx.EXPAND | wx.ALL, 0)
+        sizer.Add(import_button, 1, wx.EXPAND | wx.ALL, 0)
+        sizer.Add(export_button, 1, wx.EXPAND | wx.ALL, 0)
+        return sizer
 
     def __init_bit(self):
         sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u"Bit"), wx.HORIZONTAL)
@@ -94,7 +103,7 @@ class RegisterAR9201(NotebookBase):
         backward.Bind(wx.EVT_BUTTON, self.on_backward)
         bbackward.Bind(wx.EVT_BUTTON, self.on_bbackward)
         st_current_text = wx.StaticText(self, wx.ID_ANY, u"Current Page: ", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.st_current_address = wx.StaticText(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.st_current_address = wx.TextCtrl(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, wx.DefaultSize, 0)
         sizer.Add(fforward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(forward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(st_current_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -204,23 +213,44 @@ class RegisterAR9201(NotebookBase):
         self.DG.RefreshAllData()
 
     def get_current_page(self):
-        return self.st_current_address.GetLabel()
+        return self.st_current_address.GetValue()
 
     def set_current_page(self, address):
-        self.st_current_address.SetLabel(self.__convert_address(address=address))
+        self.st_current_address.SetValue(self.__convert_address(address=address))
         return True
 
     def on_refresh(self, event):
-        event.GetEventObject().Disable()
+        # event.GetEventObject().Disable()
         try:
             self.DG.RefreshAllData()
         except Exception, e:
             Logger.error(e)
         finally:
-            event.GetEventObject().Enable()
+            pass
+            # event.GetEventObject().Enable()
+
+    def AUTO_REFRESH(self):
+        while self.AF_flag:
+            wx.CallAfter(self.DG.RefreshAllData)
+            time.sleep(1)
+
+    def auto_refresh(self, event):
+        obj = event.GetEventObject()
+        state = obj.GetLabel()
+        if state == u"Refresh":
+            obj.SetLabel(u'Auto Refresh')
+            self.AF_flag = True
+            Utility.append_work(self.AUTO_REFRESH, allow_dupl=False)
+        elif state == u'Auto Refresh':
+            self.AF_flag = False
+            obj.SetLabel(u"Refresh")
+        else:
+            self.AF_flag = False
+            obj.SetLabel(u"Refresh")
 
     def after_start_address_input(self, event):
         value = self.st_current_address.GetValue()
+        print 'sss'
         event.Skip()
 
     def on_item_select(self, event):
