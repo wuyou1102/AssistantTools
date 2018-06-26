@@ -103,11 +103,11 @@ class RegisterAR9201(NotebookBase):
         backward.Bind(wx.EVT_BUTTON, self.on_backward)
         bbackward.Bind(wx.EVT_BUTTON, self.on_bbackward)
         st_current_text = wx.StaticText(self, wx.ID_ANY, u"Current Page: ", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.st_current_address = wx.TextCtrl(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.st_current_address = wx.TextCtrl(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, (-1, 20), 0)
         sizer.Add(fforward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(forward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(st_current_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        sizer.Add(self.st_current_address, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        sizer.Add(self.st_current_address, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
         sizer.Add(backward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(bbackward, 0, wx.ALIGN_CENTER_VERTICAL)
         return sizer
@@ -250,13 +250,12 @@ class RegisterAR9201(NotebookBase):
 
     def after_start_address_input(self, event):
         value = self.st_current_address.GetValue()
-        print 'sss'
         event.Skip()
 
     def on_item_select(self, event):
         select = self.LB_AddressCategory.GetStringSelection()
         address = self.RegisterMapping[select]
-        self.st_current_address.SetLabel(self.__convert_address(address))
+        self.st_current_address.SetValue(self.__convert_address(address))
         self.DG.RefreshAllData()
 
     def __convert_address(self, address):
