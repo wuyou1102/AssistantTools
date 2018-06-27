@@ -41,26 +41,28 @@ def __append_thread_duplicate(target, **kwargs):
             name += choice('0123456789ABCDEF')
         return name
 
-    name = kwargs.get('name', target.__name__)
+    name = kwargs.get('thread_name', target.__name__)
     name = add_suffix(name)
-    return __start_thread(target=target, name=name, **kwargs)
+    kwargs['thread_name'] = name
+    return __start_thread(target=target, **kwargs)
 
 
 def __append_thread(target, **kwargs):
-    name = kwargs.get('name', target.__name__)
-    _thread = __thread_pool.get(name)
+    thread_name = kwargs.get('thread_name', target.__name__)
+    kwargs['thread_name'] = thread_name
+    _thread = __thread_pool.get(thread_name)
     if _thread and _thread.isAlive():
         Logger.warn(ErrorCode.TARGET_ALREADY_EXIST)
         return False
-    return __start_thread(target=target, name=name, **kwargs)
+    return __start_thread(target=target, **kwargs)
 
 
-def __start_thread(target, name, **kwargs):
+def __start_thread(target, thread_name, **kwargs):
     t = threading.Thread(target=target, kwargs=kwargs)
     t.setDaemon(True)
-    __thread_pool[name] = t
+    __thread_pool[thread_name] = t
     t.start()
-    Logger.debug(msg="%-10s|%50s" % ("STARTED", name))
+    Logger.debug(msg="%-10s|%50s" % ("STARTED", thread_name))
     return True
 
 

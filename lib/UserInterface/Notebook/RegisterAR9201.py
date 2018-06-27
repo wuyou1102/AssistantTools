@@ -98,18 +98,21 @@ class RegisterAR9201(NotebookBase):
         fforward = wx.Button(self, wx.ID_ANY, u"<<", wx.DefaultPosition, button_size, 0)
         backward = wx.Button(self, wx.ID_ANY, u">", wx.DefaultPosition, button_size, 0)
         bbackward = wx.Button(self, wx.ID_ANY, u">>", wx.DefaultPosition, button_size, 0)
+        add = wx.Button(self, wx.ID_ANY, u"+", wx.DefaultPosition, button_size, 0)
         forward.Bind(wx.EVT_BUTTON, self.on_forward)
         fforward.Bind(wx.EVT_BUTTON, self.on_fforward)
         backward.Bind(wx.EVT_BUTTON, self.on_backward)
         bbackward.Bind(wx.EVT_BUTTON, self.on_bbackward)
+        add.Bind(wx.EVT_BUTTON, self.add_new_dialog)
         st_current_text = wx.StaticText(self, wx.ID_ANY, u"Current Page: ", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.st_current_address = wx.TextCtrl(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, (-1, 20), 0)
+        self.st_current_address = wx.TextCtrl(self, wx.ID_ANY, "0x00000000", wx.DefaultPosition, (97, 20), 0)
         sizer.Add(fforward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(forward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(st_current_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         sizer.Add(self.st_current_address, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
         sizer.Add(backward, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(bbackward, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(add, 0, wx.ALIGN_CENTER_VERTICAL)
         return sizer
 
     def on_export(self, event):
@@ -155,6 +158,10 @@ class RegisterAR9201(NotebookBase):
                 if msg_dlg.ShowModal() == wx.ID_OK:
                     msg_dlg.Destroy()
         dlg.Destroy()
+
+    def add_new_dialog(self, event):
+        dialog = DataGridDialog(size=(600, 560), name=self.get_current_page())
+        dialog.Show()
 
     def __read_page(self, file):
         def convert_line(l):
@@ -522,3 +529,102 @@ class DataGridFF(grid.Grid):  ##, mixins.GridAutoEditMixin):
             for y in range(self.GetNumberCols()):
                 lst.append("%s%s:%s" % (rows[x], cols[y], self.GetCellValue(x, y)))
         return '\n'.join(lst)
+
+
+from lib.UserInterface.Dialog import DialogBase
+
+
+class DataGridDialog(DialogBase.DialogBase):
+    def __init__(self, size, name="", positon=wx.DefaultPosition):
+        DialogBase.DialogBase.__init__(self, name=name, size=size, pos=positon)
+        self.AF_flag = True
+        MainSizer = wx.BoxSizer(wx.VERTICAL)
+        TopSizer = wx.BoxSizer(wx.HORIZONTAL)
+        BitSizer = self.__init_bit()
+        refresh_button = wx.Button(self, wx.ID_ANY, u"Refresh", wx.DefaultPosition, (100, 46), 0)
+        refresh_button.Bind(wx.EVT_BUTTON, self.on_refresh)
+        refresh_button.Bind(wx.EVT_RIGHT_DCLICK, self.auto_refresh)
+        TopSizer.Add(BitSizer, 0, wx.EXPAND)
+        TopSizer.Add(refresh_button, 0, wx.TOP, 8)
+        self.DG = DataGridFF(self)
+        MainSizer.Add(TopSizer, 0, wx.ALIGN_CENTER)
+        MainSizer.Add(self.DG, 1, wx.ALIGN_CENTER | wx.TOP, 3)
+
+        self.SetSizer(MainSizer)
+        self.DG.RefreshAllData()
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+
+    def __init_bit(self):
+        sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u"Bit"), wx.HORIZONTAL)
+        toggle_size = (25, 25)
+        for x in range(8):
+            self.__setattr__(bit_str % x,
+                             wx.ToggleButton(self, wx.ID_ANY, u"%s" % (7 - x), wx.DefaultPosition, toggle_size, 0))
+            obj = self.__getattribute__(bit_str % x)
+            obj.Bind(wx.EVT_TOGGLEBUTTON, self.on_bit_change)
+            sizer.Add(obj, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
+
+        # for x in range(7, -1, -1):
+        #     obj = self.__getattribute__(bit_str % x)
+        #     obj.Bind(wx.EVT_TOGGLEBUTTON, self.on_bit_change)
+        #     sizer.Add(obj, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
+        return sizer
+
+    def get_current_page(self):
+        return self.name
+
+    def on_bit_change(self, event):
+        if not self.DG.GetSelectedCell():
+            return False
+        tmp = ""
+        for x in range(8):
+            obj = self.__getattribute__(bit_str % x)
+            tmp += "1" if obj.GetValue() else "0"
+        h = hex(int(tmp, 2))[2:]
+        if len(h) == 1:
+            h = "0" + h
+        self.DG.ChangeCell(h)
+
+    def SetBit(self, value):
+        if value == u'' or value == NA:
+            Logger.info("Cell Value is not valid: \"%s\"." % value)
+            value = "0"
+        b = bin(int(value, 16))[2:]
+        b = "0" * (8 - len(b)) + b
+        for x in range(len(b)):
+            obj = self.__getattribute__(bit_str % x)
+            obj.SetValue(True if b[x] == '1' else False)
+
+    def on_refresh(self, event):
+        # event.GetEventObject().Disable()
+        try:
+            self.DG.RefreshAllData()
+        except Exception, e:
+            Logger.error(e)
+        finally:
+            pass
+            # event.GetEventObject().Enable()
+
+    def AUTO_REFRESH(self):
+        while self.AF_flag:
+            wx.CallAfter(self.DG.RefreshAllData)
+            time.sleep(1)
+
+    def auto_refresh(self, event):
+        obj = event.GetEventObject()
+        state = obj.GetLabel()
+        if state == u"Refresh":
+            obj.SetLabel(u'Auto Refresh')
+            self.AF_flag = True
+            Utility.append_work(self.AUTO_REFRESH, allow_dupl=False, thread_name="AUTO_REFRESH: %s" % self.name)
+        elif state == u'Auto Refresh':
+            self.AF_flag = False
+            obj.SetLabel(u"Refresh")
+        else:
+            self.AF_flag = False
+            obj.SetLabel(u"Refresh")
+
+    def on_close(self, event):
+        Logger.debug("Close Register Dialog: %s" % self.name)
+        self.AF_flag = False
+        event.Skip()
