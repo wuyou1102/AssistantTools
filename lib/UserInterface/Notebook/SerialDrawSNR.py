@@ -35,16 +35,16 @@ class SerialDrawSNR(NotebookBase):
         B_Refresh.Bind(wx.EVT_BUTTON, self.on_refresh)
         B_Connect = wx.Button(self, wx.ID_ANY, u"Connect", wx.DefaultPosition, (-1, 27), 0)
         B_Connect.Bind(wx.EVT_BUTTON, self.on_connect)
-        B_New = wx.Button(self, wx.ID_ANY, u"+", wx.DefaultPosition, (30, 27), 0)
+        # B_New = wx.Button(self, wx.ID_ANY, u"+", wx.DefaultPosition, (30, 27), 0)
         # B_New.Bind(wx.EVT_BUTTON, self.on_new_window)
 
         PortsSizer.Add(B_Refresh, 0, wx.ALIGN_CENTER_VERTICAL)
         PortsSizer.Add(self.C_ports, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 1)
         PortsSizer.Add(B_Connect, 0, wx.ALIGN_CENTER_VERTICAL)
-        PortsSizer.Add(B_New, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.MPL_RSSI = MatplotPanel(self, 0, 50, -100, -10)
+        # PortsSizer.Add(B_New, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.MPL_RSSI = MatplotPanel(self, 0, 50, -120, -30)
         self.MPL_BLER = MatplotPanel(self, 0, 50, 0, 100)
-        self.MPL_SNR = MatplotPanel(self, 0, 50, -10, 30)
+        self.MPL_SNR = MatplotPanel(self, 0, 50, -10, 30, ya=5, yi=1)
 
         OutputSizer = wx.BoxSizer(wx.VERTICAL)
         OutputSizer.Add(self.MPL_RSSI, 1, wx.EXPAND)
@@ -140,14 +140,16 @@ class DataCollect(object):
     def stop(self):
         self.flag = False
 
-
     def COLLECT_DATA(self):
         while self.session.is_open() and self.flag:
             line = self.session.read_line()
             if not line:
                 continue
             if line.startswith("br ("):
-                br, fch, ds, mode = Utility.find_in_string(bler_pattern, line)
+                try:
+                    br, fch, ds, mode = Utility.find_in_string(bler_pattern, line)
+                except ValueError:
+                    continue
                 name = 'bler_%s' % mode.replace(',', '_')
                 try:
                     self.__getattribute__(name)
@@ -155,7 +157,10 @@ class DataCollect(object):
                     self.init_bler_line(name)
                 self.update_bler_line(name, br, fch, ds)
             elif line.startswith('rssi ('):
-                r_br, r_ds, s_br, s_ds, mode = Utility.find_in_string(rssi_snr_pattern, line)
+                try:
+                    r_br, r_ds, s_br, s_ds, mode = Utility.find_in_string(rssi_snr_pattern, line)
+                except ValueError:
+                    continue
                 r_name = 'rssi_%s' % mode.replace(',', '_')
                 s_name = 'snr_%s' % mode.replace(',', '_')
                 try:
@@ -170,53 +175,93 @@ class DataCollect(object):
                 self.update_snr_line(s_name, s_br, s_ds)
 
     def init_bler_line(self, name):
-        self.__setattr__(name, True)
-        self.__setattr__('%s_fch' % name, Line(label='%s_fch' % name, linestyle='-', axes=self.B))
-        self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.B))
-        self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.B))
-        self.B.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
+        if 'ap' in name:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_fch' % name, Line(label='%s_fch' % name, linestyle='-', axes=self.B))
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.B))
+            # self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.B))
+            self.B.legend(loc='best', ncol=2, fontsize='x-small', framealpha=0.4)
+        else:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_fch' % name, Line(label='%s_fch' % name, linestyle='-', axes=self.B))
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.B))
+            self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.B))
+            self.B.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
 
     def update_bler_line(self, name, fch, br, ds):
-        self.__getattribute__('%s_fch' % name).Append(int(fch))
-        self.__getattribute__('%s_br' % name).Append(int(br))
-        self.__getattribute__('%s_ds' % name).Append(int(ds))
+        if 'ap' in name:
+            self.__getattribute__('%s_fch' % name).Append(int(fch))
+            # self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
+        else:
+            self.__getattribute__('%s_fch' % name).Append(int(fch))
+            self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
 
     def init_rssi_line(self, name):
-        self.__setattr__(name, True)
-        self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.R))
-        self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.R))
-        self.R.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
+        if 'ap' in name:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.R))
+            # self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.R))
+            self.R.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
+        else:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.R))
+            self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.R))
+            self.R.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
 
     def update_rssi_line(self, name, br, ds):
-        self.__getattribute__('%s_br' % name).Append(int(br))
-        self.__getattribute__('%s_ds' % name).Append(int(ds))
+        if 'ap' in name:
+            # self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
+        else:
+            self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
 
     def init_snr_line(self, name):
-        self.__setattr__(name, True)
-        self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.S))
-        self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.S))
-        self.S.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
+        if 'ap' in name:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.S))
+            # self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.S))
+            self.S.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
+        else:
+            self.__setattr__(name, True)
+            self.__setattr__('%s_ds' % name, Line(label='%s_ds' % name, linestyle='-', axes=self.S))
+            self.__setattr__('%s_br' % name, Line(label='%s_br' % name, linestyle='-', axes=self.S))
+            self.S.legend(loc='best', ncol=3, fontsize='x-small', framealpha=0.4)
 
     def update_snr_line(self, name, br, ds):
-        self.__getattribute__('%s_br' % name).Append(int(br))
-        self.__getattribute__('%s_ds' % name).Append(int(ds))
+        if 'ap' in name:
+            # self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
+        else:
+            self.__getattribute__('%s_br' % name).Append(int(br))
+            self.__getattribute__('%s_ds' % name).Append(int(ds))
 
 
 class Line(object):
-    def __init__(self, axes, label, linestyle, color='#FF0000', linewidth=0.75):
-        if 'ds' in label:
-            color = '#FF0000'
-        elif 'br' in label:
-            color = '#0F0F0F'
-        else:
-            color = '#0000FF'
-
+    def __init__(self, axes, label, linestyle, color='#FF0000', linewidth=0.85):
         if 'ap_0' in label:
-            linestyle = '-'
+            color = '#FF0000'
         elif 'ap_1' in label:
-            linestyle = '--'
+            color = '#000000'
+        elif 'ap_2' in label:
+            color = '#00BFA5'
         else:
-            linestyle = '-.'
+            color = '#000000'
+
+        if 'ds' in label:
+            marker = 'o'
+            markersize = '3'
+        elif 'br' in label:
+            linestyle = '--'
+            marker = '*'
+            markersize = '5'
+        else:
+            linestyle = ':'
+            marker = ''
+            markersize = '1'
+            linewidth = 1.25
 
         self.axes = axes
         self.label = label
@@ -228,7 +273,9 @@ class Line(object):
         self._line, = self.axes.plot(np.array(self._singal), np.array(self._sequence), label=self.label,
                                      color=self.color,
                                      linewidth=self.linewidth,
-                                     linestyle=self.linestyle)
+                                     linestyle=self.linestyle,
+                                     marker=marker,
+                                     markersize=markersize)
         self.count = 0
         self.np_seq = np.arange(0, 50, 1)
 

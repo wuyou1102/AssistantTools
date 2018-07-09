@@ -13,12 +13,14 @@ from matplotlib.ticker import MultipleLocator
 
 ######################################################################################
 class MatplotPanel(wx.Panel):
-    def __init__(self, parent, x1, x2, y1, y2):
+    def __init__(self, parent, x1, x2, y1, y2, xa=2, xi=1, ya=10, yi=2):
         wx.Panel.__init__(self, parent=parent, id=-1)
         self.Figure = matplotlib.figure.Figure()
         self.axes = self.Figure.add_axes([0.05, 0.05, 0.93, 0.94])
+
         self.FigureCanvas = FigureCanvas(self, -1, self.Figure)
-        self.x1, self.x2, self.y1, self.y2=x1, x2, y1, y2
+        self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
+        self.xa, self.xi, self.ya, self.yi = xa, xi, ya, yi
         self.TopBoxSizer = wx.BoxSizer(wx.VERTICAL)
         self.TopBoxSizer.Add(self.FigureCanvas, proportion=-10, border=2, flag=wx.ALL | wx.EXPAND)
         self.SetSizer(self.TopBoxSizer)
@@ -27,10 +29,10 @@ class MatplotPanel(wx.Panel):
     def init_axis(self):
         self.axis([self.x1, self.x2, self.y1, self.y2])  # 设置默认坐标系
         self.axes.tick_params(labelsize=8)  # 设置坐标系哥都文字大小
-        self.axes.xaxis.set_major_locator(MultipleLocator(5))  # 设置x轴主坐标刻度为5
-        self.axes.xaxis.set_minor_locator(MultipleLocator(1))  # 设置x轴次坐标刻度为1
-        self.axes.yaxis.set_major_locator(MultipleLocator(10))  # 设置y轴主坐标刻度为5
-        self.axes.yaxis.set_minor_locator(MultipleLocator(2))
+        self.axes.xaxis.set_major_locator(MultipleLocator(self.xa))  # 设置x轴主坐标刻度为5
+        self.axes.xaxis.set_minor_locator(MultipleLocator(self.xi))  # 设置x轴次坐标刻度为1
+        self.axes.yaxis.set_major_locator(MultipleLocator(self.ya))  # 设置y轴主坐标刻度为5
+        self.axes.yaxis.set_minor_locator(MultipleLocator(self.yi))
         self.axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
         self.axes.yaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
         self.UpdatePlot()
@@ -123,4 +125,3 @@ class MatplotPanel(wx.Panel):
 
     def array(self, *args, **kwargs):
         return np.array(*args, **kwargs)
-
