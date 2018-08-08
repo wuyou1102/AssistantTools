@@ -5,21 +5,21 @@ from lib.Config.Parameter import ErrorCode
 import types
 from random import choice
 
-Logger = logging.getLogger(__name__)
+__log = logging.getLogger(__name__)
 
 __thread_pool = dict()
 
 
 def query_thread():
-    Logger.debug(msg="%-10s|%50s" % ("STATE", "NAME"))
+    __log.debug(msg="%-10s|%50s" % ("STATE", "NAME"))
     for k, v in __thread_pool.items():
-        Logger.debug(msg="%-10s|%50s" % ("RUNNING" if v.isAlive() else "DONE", k))
+        __log.debug(msg="%-10s|%50s" % ("RUNNING" if v.isAlive() else "DONE", k))
 
 
 def append_work(target, allow_dupl=False, **kwargs):
     query_thread()
     if not isinstance(target, types.FunctionType) and not isinstance(target, types.MethodType):
-        Logger.error(ErrorCode.TARGET_NOT_FUNCTION.MSG)
+        __log.error(ErrorCode.TARGET_NOT_FUNCTION.MSG)
         return False
     if allow_dupl:
         return __append_thread_duplicate(target=target, **kwargs)
@@ -52,7 +52,7 @@ def __append_thread(target, **kwargs):
     kwargs['thread_name'] = thread_name
     _thread = __thread_pool.get(thread_name)
     if _thread and _thread.isAlive():
-        Logger.warn(ErrorCode.TARGET_ALREADY_EXIST)
+        __log.warn(ErrorCode.TARGET_ALREADY_EXIST)
         return False
     return __start_thread(target=target, **kwargs)
 
@@ -62,7 +62,7 @@ def __start_thread(target, thread_name, **kwargs):
     t.setDaemon(True)
     __thread_pool[thread_name] = t
     t.start()
-    Logger.debug(msg="%-10s|%50s" % ("STARTED", thread_name))
+    __log.debug(msg="%-10s|%50s" % ("STARTED", thread_name))
     return True
 
 

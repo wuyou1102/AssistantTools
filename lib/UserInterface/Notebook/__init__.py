@@ -2,6 +2,7 @@ from OfflineLogParse import OfflineLogParse
 # from DrawSNR import DrawSNR
 from SerialTool import SerialTool
 from SerialDrawSNR import SerialDrawSNR
-from RegisterAR9201 import RegisterAR9201 as AR9201
+from RegisterGirdFF import RegisterGrid
+from RegisterSetting import RegisterSetting
 
-DISPLAY_PANEL = [SerialDrawSNR,SerialTool, AR9201, OfflineLogParse]
+DISPLAY_PANEL = [RegisterSetting, SerialDrawSNR, SerialTool, RegisterGrid, OfflineLogParse]

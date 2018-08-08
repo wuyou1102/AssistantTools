@@ -5,10 +5,8 @@ from NotebookBase import NotebookBase
 from lib import Utility
 from lib.Config import Instrument
 import time
-
-Logger = Utility.getLogger(__name__)
 import binascii
-
+Logger = Utility.getLogger(__name__)
 
 def get_cell_label():
     cols = "0123456789ABCDEF"
@@ -25,9 +23,9 @@ bit_str = "bit_%s"
 cell_label = get_cell_label()
 
 
-class RegisterAR9201(NotebookBase):
+class RegisterGrid(NotebookBase):
     def __init__(self, parent):
-        NotebookBase.__init__(self, parent=parent, name="AR9201")
+        NotebookBase.__init__(self, parent=parent, name="寄存器表格")
         MainSizer = wx.BoxSizer(wx.HORIZONTAL)
         LeftSizer = wx.BoxSizer(wx.VERTICAL)
         RightSizer = wx.BoxSizer(wx.VERTICAL)
