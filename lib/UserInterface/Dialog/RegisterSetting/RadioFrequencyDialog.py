@@ -193,7 +193,6 @@ class Panel(wx.Panel):
     def __init_baseband_power_sizer(self):
         def init_item(name, address, title):
             self.__setattr__(name, BandbasePowerSlider(self, title, address))
-
             return self.__getattribute__(name).get_sizer()
 
         BasebandSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)

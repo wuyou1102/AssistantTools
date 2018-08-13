@@ -1,8 +1,10 @@
 # -*- encoding:UTF-8 -*-
 import wx
+import logging
+
+logger = logging.getLogger(__name__)
+
 PanelNameStr = "WUYOU"
-
-
 class NotebookBase(wx.Panel):
     def __init__(self, parent=None, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TAB_TRAVERSAL,
                  name=PanelNameStr):
@@ -13,4 +15,5 @@ class NotebookBase(wx.Panel):
     def name(self):
         return self._name
 
-
+    def close(self):
+        logger.debug("Close Window")

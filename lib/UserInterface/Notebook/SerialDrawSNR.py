@@ -25,6 +25,7 @@ class SerialDrawSNR(NotebookBase):
         PortsSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.C_ports = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, Serial.get_ports(), 0)
         self.session = None
+        self.dialog = None
         self.DC = None
         self.lines = list()
         self.anim_bler = None
@@ -57,15 +58,19 @@ class SerialDrawSNR(NotebookBase):
 
     def create_output(self, event):
         if self.session and self.DC:
-            dialog = OutputDialog(size=(700, 560), name="", session=self.session, tearDown=self.close_output)
-            self.DC.set_output(dialog.LOG_OUTPUT)
-            dialog.Show()
+            self.dialog = OutputDialog(size=(700, 560), name="", session=self.session, tearDown=self.close_output)
+            self.DC.set_output(self.dialog.LOG_OUTPUT)
+            self.dialog.Show()
         else:
             Logger.info(u"Nothing need output.")
 
     def close_output(self):
         if self.DC:
             self.DC.reset_output()
+
+    def close(self):
+        if self.dialog:
+            self.dialog.Destroy()
 
     def on_connect(self, event):
         obj = event.GetEventObject()

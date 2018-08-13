@@ -1,1 +1,2 @@
 from RadioFrequencyDialog import RadioFrequencyDialog
+from ProtocolStackDialog import ProtocolStackDialog

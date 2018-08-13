@@ -16,6 +16,7 @@ class SerialTool(NotebookBase):
         PortsSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.C_ports = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, Serial.get_ports(), 0)
         baudrates = ['115200', '921600']
+        self.dialogs = list()
         self.session = None
         self.filters = list()
         self.C_baudrate = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, baudrates, 0)
@@ -98,7 +99,12 @@ class SerialTool(NotebookBase):
 
     def on_new_window(self, event):
         dialog = SerialDialog(size=(700, 560), name="")
+        self.dialogs.append(dialog)
         dialog.Show()
+
+    def close(self):
+        for dialog in self.dialogs:
+            dialog.Destroy()
 
     def on_ok(self, event):
         string = self.filter_tc.GetValue()
@@ -222,6 +228,7 @@ class SerialDialog(DialogBase.DialogBase):
                         wx.CallAfter(self.log_tc.AppendText, msg)
             else:
                 wx.CallAfter(self.log_tc.AppendText, msg)
+
     def after_enter(self, event):
         values = self.input_tc.GetValue()
         print repr(values)

@@ -6,7 +6,9 @@ from lib import Utility
 from lib.Config import Instrument
 import time
 import binascii
+
 Logger = Utility.getLogger(__name__)
+
 
 def get_cell_label():
     cols = "0123456789ABCDEF"
@@ -34,7 +36,7 @@ class RegisterGrid(NotebookBase):
             "BB AXI configure": 0x60640000,
             "BB APB configure": 0x60680000,
         }
-
+        self.dialogs = dict()
         self.LB_AddressCategory = wx.ListBox(parent=self, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(160, -1),
                                              choices=self.RegisterMapping.keys())
         self.LB_AddressCategory.Bind(wx.EVT_LISTBOX, self.on_item_select)
@@ -158,8 +160,14 @@ class RegisterGrid(NotebookBase):
         dlg.Destroy()
 
     def add_new_dialog(self, event):
-        dialog = DataGridDialog(size=(600, 560), name=self.get_current_page())
-        dialog.Show()
+        name = self.get_current_page()
+        if name not in self.dialogs.keys():
+            self.dialogs[name] = DataGridDialog(size=(600, 560), name=name)
+        self.dialogs[name].Show()
+
+    def close(self):
+        for name, dialog in self.dialogs.items():
+            dialog.Destroy()
 
     def __read_page(self, file):
         def convert_line(l):
