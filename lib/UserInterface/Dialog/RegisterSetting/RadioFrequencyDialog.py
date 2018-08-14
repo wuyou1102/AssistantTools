@@ -2,8 +2,10 @@
 from lib.UserInterface.Dialog import DialogBase
 import wx
 from lib.Config import Instrument
-import Configuration
+from lib.ProtocolStack import Configuration
+import logging
 
+logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
 
 
@@ -69,21 +71,6 @@ class Panel(wx.Panel):
         return button_sizer
 
     def __init_freq_point_sizer(self):
-        def init_item(name, tx, rx):
-            ItemSizer = wx.BoxSizer(wx.VERTICAL)
-            title_name = wx.StaticText(self, wx.ID_ANY, name, wx.DefaultPosition, wx.DefaultSize, 0)
-            self.__setattr__("freq_point_setting_%s_tx" % name,
-                             FreqPointTextCtrl(self, wx.ID_ANY, str(tx), wx.DefaultPosition, wx.TE_CENTER,
-                                               address=tx))
-            self.__setattr__("freq_point_setting_%s_rx" % name,
-                             FreqPointTextCtrl(self, wx.ID_ANY, str(rx), wx.DefaultPosition, wx.TE_CENTER,
-                                               address=rx))
-
-            ItemSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-            ItemSizer.Add(self.__getattribute__("freq_point_setting_%s_tx" % name), 0, wx.ALIGN_CENTER | wx.ALL, 2)
-            ItemSizer.Add(self.__getattribute__("freq_point_setting_%s_rx" % name), 0, wx.ALIGN_CENTER | wx.ALL, 2)
-            return ItemSizer
-
         FreqPointSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
         title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"频点设置", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -92,34 +79,16 @@ class Panel(wx.Panel):
         title_tx = wx.StaticText(self, wx.ID_ANY, u"发送：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_rx = wx.StaticText(self, wx.ID_ANY, u"接收：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         TitleSizer.Add(title_freq_setting, 0, wx.ALIGN_CENTER | wx.TOP, 10)
-        TitleSizer.Add(title_tx, 0, wx.ALIGN_CENTER | wx.TOP, 12)
-        TitleSizer.Add(title_rx, 0, wx.ALIGN_CENTER | wx.TOP, 15)
+        TitleSizer.Add(title_tx, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+        TitleSizer.Add(title_rx, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         FreqPointSizer.Add(TitleSizer, 0, wx.ALL, 0)
         for item in Configuration.freq_point_config:
-            item_sizer = init_item(*item)
-            FreqPointSizer.Add(item_sizer, 0, wx.ALL, 0)
+            self.__setattr__(item['name'], FreqPointSetting(self, item))
+            sizer = self.__getattribute__(item['name']).get_sizer()
+            FreqPointSizer.Add(sizer, 0, wx.ALL, 0)
         return FreqPointSizer
 
     def __init_RF_channel_sizer(self):
-        def init_item(name, tx, rx):
-            ItemSizer = wx.BoxSizer(wx.VERTICAL)
-            tx_address, tx_bit = tx
-            rx_address, rx_bit = rx
-            title_name = wx.StaticText(self, wx.ID_ANY, name, wx.DefaultPosition, wx.DefaultSize, 0)
-
-            self.__setattr__("RF_channel_%s_tx" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['2G', '5G'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=tx_address,
-                                            bit=tx_bit))
-            self.__setattr__("RF_channel_%s_rx" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['2G', '5G'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=rx_address,
-                                            bit=rx_bit))
-            ItemSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-            ItemSizer.Add(self.__getattribute__("RF_channel_%s_tx" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            ItemSizer.Add(self.__getattribute__("RF_channel_%s_rx" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            return ItemSizer
-
         RF_ChannelSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
         title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"射频通道", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -131,46 +100,14 @@ class Panel(wx.Panel):
         TitleSizer.Add(title_tx, 0, wx.ALIGN_CENTER | wx.TOP, 25)
         TitleSizer.Add(title_rx, 0, wx.ALIGN_CENTER | wx.TOP, 30)
         RF_ChannelSizer.Add(TitleSizer, 0, wx.ALL, 0)
-
         for item in Configuration.RF_channel_config:
-            item_sizer = init_item(*item)
-            RF_ChannelSizer.Add(item_sizer, 0, wx.ALL, 0)
+            self.__setattr__(item['name'], RFChannelSetting(self, item))
+            sizer = self.__getattribute__(item['name']).get_sizer()
+            RF_ChannelSizer.Add(sizer, 0, wx.ALL, 0)
         return RF_ChannelSizer
 
     def __init_PA_sizer(self):
-        def init_item(name, t2_0, t2_1, t5_0, t5_1):
-            ItemSizer = wx.BoxSizer(wx.VERTICAL)
-            t2_0_address, t2_0_bit = t2_0
-            t2_1_address, t2_1_bit = t2_1
-            t5_0_address, t5_0_bit = t5_0
-            t5_1_address, t5_1_bit = t5_1
-            title_name = wx.StaticText(self, wx.ID_ANY, name, wx.DefaultPosition, wx.DefaultSize, 0)
-
-            self.__setattr__("PA_2_0_%s" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['关', '开'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=t2_0_address,
-                                            bit=t2_0_bit))
-            self.__setattr__("PA_2_1_%s" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['关', '开'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=t2_1_address,
-                                            bit=t2_1_bit))
-            self.__setattr__("PA_5_0_%s" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['关', '开'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=t5_0_address,
-                                            bit=t5_0_bit))
-            self.__setattr__("PA_5_1_%s" % name,
-                             RF_PA_RadioBox(self, -1, '', pos=wx.DefaultPosition, choices=['关', '开'],
-                                            majorDimension=1, style=wx.RA_SPECIFY_ROWS, address=t5_1_address,
-                                            bit=t5_1_bit))
-
-            ItemSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.ALL, 5)
-            ItemSizer.Add(self.__getattribute__("PA_2_0_%s" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            ItemSizer.Add(self.__getattribute__("PA_2_1_%s" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            ItemSizer.Add(self.__getattribute__("PA_5_0_%s" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            ItemSizer.Add(self.__getattribute__("PA_5_1_%s" % name), 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-            return ItemSizer
-
-        RF_ChannelSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
+        Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
         title_freq_setting = wx.StaticText(self, wx.ID_ANY, u" PA设置 ", wx.DefaultPosition, wx.DefaultSize, 0)
         font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
@@ -184,17 +121,14 @@ class Panel(wx.Panel):
         TitleSizer.Add(title_tx_2_1, 0, wx.ALIGN_CENTER | wx.TOP, 30)
         TitleSizer.Add(title_tx_5_0, 0, wx.ALIGN_CENTER | wx.TOP, 30)
         TitleSizer.Add(title_tx_5_1, 0, wx.ALIGN_CENTER | wx.TOP, 30)
-        RF_ChannelSizer.Add(TitleSizer, 0, wx.ALL, 0)
+        Sizer.Add(TitleSizer, 0, wx.ALL, 0)
         for item in Configuration.PA_config:
-            item_sizer = init_item(*item)
-            RF_ChannelSizer.Add(item_sizer, 0, wx.ALL, 0)
-        return RF_ChannelSizer
+            self.__setattr__(item['name'], PA_Setting(self, item))
+            sizer = self.__getattribute__(item['name']).get_sizer()
+            Sizer.Add(sizer, 0, wx.ALL, 0)
+        return Sizer
 
     def __init_baseband_power_sizer(self):
-        def init_item(name, address, title):
-            self.__setattr__(name, BandbasePowerSlider(self, title, address))
-            return self.__getattribute__(name).get_sizer()
-
         BasebandSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
         TitleSizer = wx.BoxSizer(wx.HORIZONTAL)
         title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"基带功率偏移", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -202,35 +136,13 @@ class Panel(wx.Panel):
         title_freq_setting.SetFont(font)
         TitleSizer.Add(title_freq_setting, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         BasebandSizer.Add(TitleSizer, 0, wx.ALL, 0)
-
         for item in Configuration.baseband_power_config:
-            item_sizer = init_item(*item)
+            self.__setattr__(item['name'], BandbasePowerSetting(self, item))
+            sizer = self.__getattribute__(item['name']).get_sizer()
             line = wx.StaticLine(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL)
-            BasebandSizer.Add(item_sizer, 0, wx.EXPAND | wx.TOP, 10)
+            BasebandSizer.Add(sizer, 0, wx.EXPAND | wx.TOP, 10)
             BasebandSizer.Add(line, 0, wx.EXPAND | wx.RIGHT | wx.LEFT, 5)
         return BasebandSizer
-
-
-class FreqPointTextCtrl(wx.TextCtrl):
-    def __init__(self, parent=None, id=None, value=None, pos=None, style=0, address='', s_bit='',
-                 e_bit=''):
-        wx.TextCtrl.__init__(self, parent, id, value, pos, (95, -1), style)
-        self.address = address
-        self.s_bit = s_bit
-        self.e_bit = e_bit
-        self.UpdateValue()
-        if not self.address:
-            self.Disable()
-
-    def UpdateValue(self):
-        if self.address:
-            self.SetValue("asdddsad")
-
-    def read_reg(self):
-        pass
-
-    def write_reg(self):
-        pass
 
 
 class RF_PA_RadioBox(wx.RadioBox):
@@ -258,12 +170,13 @@ class RF_PA_RadioBox(wx.RadioBox):
         pass
 
 
-class BandbasePowerSlider(object):
-    def __init__(self, panel, title, address):
+class BandbasePowerSetting(object):
+    def __init__(self, panel, item):
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        title_name = wx.StaticText(panel, wx.ID_ANY, title, wx.DefaultPosition, (120, -1), 0)
+        self.item = item
+        logger.debug("BandbasePowerSetting:Init")
+        logger.debug(item)
+        title_name = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, (120, -1), 0)
         title_name.Wrap(-1)
         self.slider = wx.Slider(panel, wx.ID_ANY, 0, 1, 63, wx.DefaultPosition, wx.DefaultSize,
                                 wx.SL_HORIZONTAL | wx.SL_SELRANGE | wx.SL_TICKS)
@@ -292,3 +205,76 @@ class BandbasePowerSlider(object):
     def on_scroll(self, event):
         x = self.slider.GetValue()
         self.static_text.SetLabel(str(-15.5 + 0.25 * (x - 1)))
+
+
+class FreqPointSetting(object):
+    def __init__(self, panel, item):
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.item = item
+        logger.debug("FreqPointSetting:Init")
+        logger.debug(item)
+        width = 95
+        title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
+        self.rx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
+        self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.sizer.Add(self.tx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        self.sizer.Add(self.rx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        if not item['tx']: self.tx_tc.Disable()
+        if not item['rx']: self.rx_tc.Disable()
+
+    def get_sizer(self):
+        return self.sizer
+
+
+class PA_Setting(object):
+    def __init__(self, panel, item):
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.item = item
+        logger.debug("PA_Setting:Init")
+        logger.debug(item)
+        width = 95
+        title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.a20_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.a21_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.a50_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.a51_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+
+        self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.sizer.Add(self.a20_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        self.sizer.Add(self.a21_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        self.sizer.Add(self.a50_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        self.sizer.Add(self.a51_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        if not item['a20']: self.a20_rb.Disable()
+        if not item['a21']: self.a21_rb.Disable()
+        if not item['a50']: self.a50_rb.Disable()
+        if not item['a51']: self.a51_rb.Disable()
+
+    def get_sizer(self):
+        return self.sizer
+
+
+class RFChannelSetting(object):
+    def __init__(self, panel, item):
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.item = item
+        logger.debug("RFChannelSetting:Init")
+        logger.debug(item)
+        width = 95
+        title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.tx_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=['2G', '5G'],
+                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.rx_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=['2G', '5G'],
+                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.sizer.Add(self.tx_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        self.sizer.Add(self.rx_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
+        if not item['tx']: self.tx_rb.Disable()
+        if not item['rx']: self.rx_rb.Disable()
+
+    def get_sizer(self):
+        return self.sizer

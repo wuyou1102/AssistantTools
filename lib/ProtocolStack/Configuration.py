@@ -1,47 +1,158 @@
 # encoding: utf-8
 freq_point_config = [
-    # init_item(name, tx, rx):
-    ('User0', 0x606800E8, 0x606800D8),
-    ('User1', 0x606800EC, 0x606800DC),
-    ('User2', 0x606800F0, 0x606800E0),
-    ('User3', 0x606800F4, 0x606800E4),
-    ('CS', 0x606800F8, ''),
-    ('BR', 0x606800D0, ''),
+    {
+        'name': 'freq_point_user0',
+        'title': 'User0',
+        'tx': 0x606800E8,
+        'rx': 0x606800D8,
+    },
+    {
+        'name': 'freq_point_user1',
+        'title': 'User1',
+        'tx': 0x606800EC,
+        'rx': 0x606800DC,
+    },
+    {
+        'name': 'freq_point_user2',
+        'title': 'User2',
+        'tx': 0x606800F0,
+        'rx': 0x606800E0,
+    },
+    {
+        'name': 'freq_point_user3',
+        'title': 'User3',
+        'tx': 0x606800F4,
+        'rx': 0x606800E4,
+    },
+    {
+        'name': 'freq_point_cs',
+        'title': 'CS',
+        'tx': 0x606800F8,
+        'rx': None,
+    },
+    {
+        'name': 'freq_point_br',
+        'title': 'BR',
+        'tx': 0x606800D0,
+        'rx': None,
+    },
 ]
 
 RF_channel_config = [
-    # init_item(name, tx, rx):
-    ('User0', (0x60680151, 6), (0x60680150, 7)),
-    ('User1', (0x60680158, 6), (0x60680158, 7)),
-    ('User2', (0x60680160, 6), (0x60680160, 7)),
-    ('User3', (0x60680168, 6), (0x60680168, 7)),
-    ('CS', (0x60680178, 6), (0x60680178, 7)),
-    ('BR', (0x60680188, 6), (0x60680188, 7)),
-    ('FS', (None, None), (0x60680180, 7)),
+    {
+        'name': 'rf_channel_user0',
+        'title': 'User0',
+        'tx': (0x60680150, 7),
+        'rx': (0x60680150, 6),
+    },
+    {
+        'name': 'rf_channel_user1',
+        'title': 'User1',
+        'tx': (0x60680158, 7),
+        'rx': (0x60680158, 6),
+    },
+    {
+        'name': 'rf_channel_user2',
+        'title': 'User2',
+        'tx': (0x60680160, 7),
+        'rx': (0x60680160, 6),
+    },
+    {
+        'name': 'rf_channel_user3',
+        'title': 'User3',
+        'tx': (0x60680168, 7),
+        'rx': (0x60680168, 6),
+    },
+    {
+        'name': 'rf_channel_cs',
+        'title': 'CS',
+        'tx': (0x60680178, 7),
+        'rx': (0x60680178, 6),
+    },
+    {
+        'name': 'rf_channel_br',
+        'title': 'BR',
+        'tx': (0x60680188, 7),
+        'rx': (0x60680188, 6),
+    },
+    {
+        'name': 'rf_channel_fs',
+        'title': 'FS',
+        'tx': (0x60680180, 7),
+        'rx': None,
+    },
 ]
 
 PA_config = [
-    # def init_item(name, t2_0, t2_1, t5_0, t5_1):
-    ('User0', (0x60680157, 0), (0x60680157, 1), (0x60680157, 2), (0x60680157, 3)),
-    ('User1', (0x6068015F, 0), (0x6068015F, 1), (0x6068015F, 2), (0x6068015F, 3)),
-    ('User2', (0x60680167, 0), (0x60680167, 1), (0x60680167, 2), (0x60680167, 3)),
-    ('User3', (0x6068016F, 0), (0x6068016F, 1), (0x6068016F, 2), (0x6068016F, 3)),
-    ('CS', (0x6068017F, 0), (None, None), (0x6068017F, 2), (None, None)),
-    ('BR', (0x6068018F, 0), (None, None), (0x6068018F, 2), (None, None)),
-
+    {
+        'name': 'pa_setting_user0',
+        'title': 'User0',
+        'a20': (0x60680157, 0),
+        'a21': (0x60680157, 1),
+        'a50': (0x60680157, 2),
+        'a51': (0x60680157, 3),
+    },
+    {
+        'name': 'pa_setting_user1',
+        'title': 'User1',
+        'a20': (0x6068015F, 0),
+        'a21': (0x6068015F, 1),
+        'a50': (0x6068015F, 2),
+        'a51': (0x6068015F, 3),
+    },
+    {
+        'name': 'pa_setting_user2',
+        'title': 'User2',
+        'a20': (0x60680167, 0),
+        'a21': (0x60680167, 1),
+        'a50': (0x60680167, 2),
+        'a51': (0x60680167, 3),
+    },
+    {
+        'name': 'pa_setting_user3',
+        'title': 'User3',
+        'a20': (0x6068016F, 0),
+        'a21': (0x6068016F, 1),
+        'a50': (0x6068016F, 2),
+        'a51': (0x6068016F, 3),
+    },
+    {
+        'name': 'pa_setting_cs',
+        'title': 'CS',
+        'a20': (0x6068017F, 0),
+        'a21': None,
+        'a50': (0x6068017F, 2),
+        'a51': None
+    },
+    {
+        'name': 'pa_setting_br',
+        'title': 'BR',
+        'a20': (0x6068018F, 0),
+        'a21': None,
+        'a50': (0x6068018F, 2),
+        'a51': None,
+    },
 ]
 
 baseband_power_config = [
-
-    # def init_item(name, address, title):
-    ('all_user_aerial_0_power', 0x60680020, u"所有用户天线0功率:"),
-    ('all_user_aerial_1_power', 0x60680021, u"所有用户天线1功率:"),
-    ('br_cs_aerial_0_power', 0x60680025, u"BR/CS天线0功率:"),
-
+    {
+        'name': 'baseband_power_user_a0',
+        'title': u"所有用户天线0功率:",
+        'address': 0x60680020,
+    },
+    {
+        'name': 'baseband_power_user_a1',
+        'title': u"所有用户天线1功率:",
+        'address': 0x60680021,
+    },
+    {
+        'name': 'baseband_power_br_cs',
+        'title': u"BR/CS天线0功率::",
+        'address': 0x60680025,
+    },
 ]
 
 user_interleave_config = [
-    # def __init__(self, item):
     {
         'name': 'user_interleave_send',
         'title': u'用户发送',
@@ -171,7 +282,7 @@ user_bandwidth_config = {
     },
 }
 antenna_mode_config = {
-    'name': 'antenna_mod',
+    'name': 'antenna_mode',
     'send': {
         'title': u'发送端天线配置：',
         'address': (0x60680014, 3, -1),
@@ -288,4 +399,97 @@ reset_config = [
         'title': u'复位整个基带TX',
         'address': (0x60680000, 2, -1),
     },
+]
+
+rssi_config = [
+    {
+        'title': 'User0',
+        'name': 'rssi_user0',
+        'address': (
+            [0x6068040A, 0x6068040B],
+            [0x6068040C, 0x6068040D],
+            [0x6068040E, 0x6068040F],
+            [0x60680410, 0x60680411],
+        ),
+    },
+    {
+        'title': 'User1',
+        'name': 'rssi_user1',
+        'address': (
+            [0x60680418, 0x60680419],
+            [0x6068041A, 0x6068041B],
+            [0x6068041C, 0x6068041D],
+            [0x6068041E, 0x6068041F],
+        ),
+    },
+    {
+        'title': 'User2',
+        'name': 'rssi_user2',
+        'address': (
+            [0x60680426, 0x60680427],
+            [0x60680428, 0x60680429],
+            [0x6068042A, 0x6068042B],
+            [0x6068042C, 0x6068042D],
+        ),
+    },
+    {
+        'title': 'User3',
+        'name': 'rssi_user3',
+        'address': (
+            [0x60680434, 0x60680435],
+            [0x60680436, 0x60680437],
+            [0x60680438, 0x60680439],
+            [0x6068043A, 0x6068043B],
+        ),
+    },
+]
+snr_config = [
+    {
+        'title': 'User0',
+        'name': 'snr_user0',
+        'usr': (0x60680470, 0x60680471),
+    },
+    {
+        'title': 'User1',
+        'name': 'snr_user1',
+        'usr': (0x60680480, 0x60680481),
+    },
+    {
+        'title': 'User2',
+        'name': 'snr_user2',
+        'usr': (0x60680490, 0x60680491),
+    },
+    {
+        'title': 'User3',
+        'name': 'snr_user3',
+        'usr': (0x60680498, 0x60680499),
+    },
+
+]
+bler_config = [
+    {
+        'title': 'User0',
+        'name': 'bler_user0',
+        'total': (0x606804CE, 0x606804CF),
+        'error': (0x606804CC, 0x606804CD),
+    },
+    {
+        'title': 'User1',
+        'name': 'bler_user1 ',
+        'total': (0x606804D2, 0x606804D3),
+        'error': (0x606804D0, 0x606804D1),
+    },
+    {
+        'title': 'User2',
+        'name': 'bler_user2 ',
+        'total': (0x606804D6, 0x606804D7),
+        'error': (0x606804D4, 0x606804D5),
+    },
+    {
+        'title': 'User3',
+        'name': 'bler_user3 ',
+        'total': (0x606804DA, 0x606804DB),
+        'error': (0x606804D8, 0x606804D9),
+    },
+
 ]

@@ -2,7 +2,7 @@
 from lib.UserInterface.Dialog import DialogBase
 import wx
 from lib.Config import Instrument
-import Configuration
+from lib.ProtocolStack import Configuration
 
 reg = Instrument.get_register()
 
@@ -266,7 +266,7 @@ class ModulationCodingSchemeSetting(object):
         codings = ['1/2', '2/3A', '2/3B', '3/4A', '3/4B', '5/6'] if name.startswith("user") else ['1/2', '2/3']
         repeats = ['hello', 'world']
 
-        width = 60
+        width = 70
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         self.modulation_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), modulations, 0)
         self.coding_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), codings, 0)
