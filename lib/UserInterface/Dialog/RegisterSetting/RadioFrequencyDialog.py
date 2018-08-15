@@ -9,14 +9,14 @@ logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
 
 
-class RadioFrequencyDialog(DialogBase.DialogBase):
+class RadioFrequencyDialog(DialogBase.DialogWindow):
     def __init__(self, name=u"射频设置", size=(790, 692)):
-        DialogBase.DialogBase.__init__(self, name=name, size=size)
+        DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
 
     def Show(self, show=1):
         self.panel.Refresh()
-        super(DialogBase.DialogBase, self).Show(show=show)
+        super(DialogBase.DialogWindow, self).Show(show=show)
 
 
 class Panel(wx.Panel):

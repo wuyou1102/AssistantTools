@@ -147,7 +147,7 @@ baseband_power_config = [
     },
     {
         'name': 'baseband_power_br_cs',
-        'title': u"BR/CS天线0功率::",
+        'title': u"BR/CS天线0功率:",
         'address': 0x60680025,
     },
 ]

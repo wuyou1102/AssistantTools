@@ -7,14 +7,14 @@ from lib.ProtocolStack import Configuration
 reg = Instrument.get_register()
 
 
-class ProtocolStackDialog(DialogBase.DialogBase):
-    def __init__(self, name=u"协议栈设置", size=(790, 560)):
-        DialogBase.DialogBase.__init__(self, name=name, size=size)
+class ProtocolStackDialog(DialogBase.DialogWindow):
+    def __init__(self, name=u"基带设置", size=(790, 560)):
+        DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
 
     def Show(self, show=1):
         self.panel.Refresh()
-        super(DialogBase.DialogBase, self).Show(show=show)
+        super(DialogBase.DialogWindow, self).Show(show=show)
 
 
 class Panel(wx.Panel):

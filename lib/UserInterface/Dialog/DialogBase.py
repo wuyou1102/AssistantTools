@@ -19,3 +19,20 @@ class DialogBase(wx.Dialog):
     #     self.DES
     #     self.Destroy()
     #     event.Skip()
+
+
+class DialogWindow(wx.Frame):
+    def __init__(self, size, id=wx.ID_ANY, name=DialogNameStr, pos=wx.DefaultPosition):
+        wx.Frame.__init__(self, None, id=id, title=name, pos=pos, size=size)
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+
+if __name__ == '__main__':
+    app = wx.App()
+    f = DialogWindow((400, 300))
+    f.Show()
+    app.MainLoop()
