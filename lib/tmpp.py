@@ -18,7 +18,7 @@ from matplotlib.backends.backend_wxagg import \
 import numpy as np
 import pylab
 
-
+import time
 class DataGen(object):
     """ A silly class that generates pseudo-random data for
         display in the plot.
@@ -112,7 +112,8 @@ class GraphFrame(wx.Frame):
 
         self.redraw_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)
-        self.redraw_timer.Start(100)
+        self.redraw_timer.Start(1000)
+        print self.redraw_timer.GetInterval()
 
     def create_menu(self):
         self.menubar = wx.MenuBar()
@@ -184,7 +185,7 @@ class GraphFrame(wx.Frame):
         self.fig = Figure((3.0, 3.0), dpi=self.dpi)
 
         self.axes = self.fig.add_subplot(111)
-        # self.axes.set_axis_bgcolor('black')
+        self.axes.set_facecolor('white')
         self.axes.set_title('Very important random data', size=12)
 
         pylab.setp(self.axes.get_xticklabels(), fontsize=8)
@@ -196,7 +197,7 @@ class GraphFrame(wx.Frame):
         self.plot_data = self.axes.plot(
             self.data,
             linewidth=1,
-            color=(1, 1, 0),
+            color='b',
         )[0]
 
     def draw_plot(self):

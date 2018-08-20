@@ -19,6 +19,7 @@ def _get_workspace():
 
 
 WORKSPACE = _get_workspace()
+WORKSPACE = "D:\AssistantTools"
 REPOSITORY = join(WORKSPACE, 'repository')
 RESOURCE = join(WORKSPACE, 'resource')
 LOG = _makedirs(WORKSPACE, 'log')

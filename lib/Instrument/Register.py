@@ -72,21 +72,22 @@ class Register(object):
             return False
         return True
 
-    def Get(self, address):
+    def Get(self, address, reverse=-1):
+
         if self.lock.acquire():
             try:
-                return self.__get(address=address)
+                return self.__get(address=address, reverse=reverse)
             finally:
                 self.lock.release()
 
-    def GetByte(self, address):
+    def GetByte(self, address, reverse=1):
         if self.lock.acquire():
             try:
-                return self.__get_byte(address=address)
+                return self.__get_byte(address=address, reverse=reverse)
             finally:
                 self.lock.release()
 
-    def __get_byte(self, address):
+    def __get_byte(self, address, reverse):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
         if not result:
@@ -96,16 +97,16 @@ class Register(object):
             # raise IOError('Can not get address info.')
         Logger.debug(
             'Read Address \"%s\" byte is \"%s\" and func result is  \"%s\"' % (hex(address), repr(tmp_str.raw), result))
-        return tmp_str.raw
+        return tmp_str.raw[::reverse]
 
-    def __get(self, address):
+    def __get(self, address, reverse):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
         if not result:
             if self.Reconnect():
                 return self.__get(address=address)
             return False
-        value = binascii.b2a_hex(tmp_str.raw[::-1]).upper()
+        value = binascii.b2a_hex(tmp_str.raw[::reverse]).upper()
         Logger.debug(
             'Read  Address \"%s\" value is \"%s\" and func result is  \"%s\"' % (hex(address), value, result))
         return value
@@ -125,7 +126,7 @@ class Register(object):
 
 if __name__ == '__main__':
     r = Register()
-    r.Init()
-    while True:
-        r.Set(0x60680000, 0x000B0200)
-        r.Get(0x60680000)
+    print r.Get(address=0x60680000, reverse=1)  # 从小到大 00 01 02 03
+    print r.Get(address=0x60680000, reverse=-1)  # 从大到小 03 02 01 00
+    print repr(r.GetByte(address=0x60680000, reverse=1))
+    print repr(r.GetByte(address=0x60680000, reverse=-1))

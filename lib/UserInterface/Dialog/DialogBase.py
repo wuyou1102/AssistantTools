@@ -22,8 +22,9 @@ class DialogBase(wx.Dialog):
 
 
 class DialogWindow(wx.Frame):
-    def __init__(self, size, id=wx.ID_ANY, name=DialogNameStr, pos=wx.DefaultPosition):
-        wx.Frame.__init__(self, None, id=id, title=name, pos=pos, size=size)
+    def __init__(self, size, id=wx.ID_ANY, name=DialogNameStr, pos=wx.DefaultPosition,
+                 style=wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX):
+        wx.Frame.__init__(self, None, id=id, title=name, pos=pos, size=size, style=style)
         self._name = name
 
     @property
