@@ -8,7 +8,6 @@ import matplotlib
 # matplotlib采用WXAgg为后台,将matplotlib嵌入wxPython中
 matplotlib.use("WXAgg")
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-from matplotlib.backends.backend_wxagg import NavigationToolbar2Wx
 from matplotlib.ticker import MultipleLocator
 
 

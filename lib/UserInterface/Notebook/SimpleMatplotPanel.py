@@ -33,8 +33,8 @@ class MatplotPanel(wx.Panel):
         self.axes.xaxis.set_minor_locator(MultipleLocator(self.xi))  # 设置x轴次坐标刻度为1
         self.axes.yaxis.set_major_locator(MultipleLocator(self.ya))  # 设置y轴主坐标刻度为5
         self.axes.yaxis.set_minor_locator(MultipleLocator(self.yi))
-        self.axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
-        self.axes.yaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
+        self.axes.xaxis.grid(True, which='major')
+        self.axes.yaxis.grid(True, which='major')
         self.UpdatePlot()
 
     def UpdatePlot(self):

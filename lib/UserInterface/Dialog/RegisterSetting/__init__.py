@@ -1,3 +1,4 @@
 from RadioFrequencyDialog import RadioFrequencyDialog
 from ProtocolStackDialog import ProtocolStackDialog
 from MplDialog import MplDialog
+from ObjectBase import ObjectBase

@@ -2,6 +2,9 @@
 from os.path import join
 from os.path import exists
 from os import makedirs as __makedirs
+import os
+
+print
 
 
 def _makedirs(path, *paths):
@@ -18,8 +21,7 @@ def _get_workspace():
     return abspath(dirname(argv[0]))
 
 
-WORKSPACE = _get_workspace()
-WORKSPACE = "D:\AssistantTools"
+WORKSPACE = "D:\AssistantTools" if os.getenv('computername') == 'OEMPC' else _get_workspace()
 REPOSITORY = join(WORKSPACE, 'repository')
 RESOURCE = join(WORKSPACE, 'resource')
 LOG = _makedirs(WORKSPACE, 'log')

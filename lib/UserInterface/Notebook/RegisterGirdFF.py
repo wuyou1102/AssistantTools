@@ -324,7 +324,7 @@ class DataGridFF(grid.Grid):  ##, mixins.GridAutoEditMixin):
         start = int(self.parent.get_current_page(), 16)
         data = list()
         for x in range(start, start + 256, 4):
-            byte = self.reg.GetByte(x)
+            byte = self.reg.GetBytes(x)
             if byte:
                 for x in range(4):
                     data.append(binascii.b2a_hex(byte[x]).upper())
@@ -438,7 +438,7 @@ class DataGridFF(grid.Grid):  ##, mixins.GridAutoEditMixin):
         if address is None:
             Logger.error('Can not find address.')
             return False
-        value = self.reg.GetByte(address)
+        value = self.reg.GetBytes(address)
         return value
 
     def GetAddress(self, row, col):

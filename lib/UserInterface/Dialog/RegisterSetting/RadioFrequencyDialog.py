@@ -4,19 +4,28 @@ import wx
 from lib.Config import Instrument
 from lib.ProtocolStack import Configuration
 import logging
+from ObjectBase import ObjectBase
 
 logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
+RF_configs = [Configuration.freq_point_config, Configuration.PA_config, Configuration.RF_channel_config,
+              Configuration.baseband_power_config]
+
+
+def set_radio_box(value, bit, radio_box):
+    b = '{0:08b}'.format(ord(value))[::-1]
+    radio_box.SetSelection(int(b[bit]))
 
 
 class RadioFrequencyDialog(DialogBase.DialogWindow):
     def __init__(self, name=u"射频设置", size=(790, 692)):
         DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
-
-    def Show(self, show=1):
         self.panel.Refresh()
-        super(DialogBase.DialogWindow, self).Show(show=show)
+
+    # def Show(self, show=1):
+    #     self.panel.Refresh()
+    #     super(DialogBase.DialogWindow, self).Show(show=show)
 
 
 class Panel(wx.Panel):
@@ -35,16 +44,16 @@ class Panel(wx.Panel):
         TopLeftSizer.Add(PA_Sizer, 0, wx.EXPAND, 0)
         TopSizer.Add(TopLeftSizer, 0, wx.ALL, 0)
         TopSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.LEFT, 5)
-
         MainSizer.Add(TopSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         MainSizer.Add(RF_ChannelSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         MainSizer.Add(Baseband_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-
         self.SetSizer(MainSizer)
         self.Layout()
 
     def Refresh(self):
-        pass
+        for config in RF_configs:
+            for item in config:
+                self.__getattribute__(item['name']).refresh()
 
     def on_TODO(self, event):
         pass
@@ -145,37 +154,14 @@ class Panel(wx.Panel):
         return BasebandSizer
 
 
-class RF_PA_RadioBox(wx.RadioBox):
-    def __init__(self, parent=None, id=None, label=None, pos=None, choices=[], majorDimension=0, style=None,
-                 address="", bit=""):
-        wx.RadioBox.__init__(self, parent, id, label, pos, (95, -1), choices, majorDimension, style)
-        self.index = address % 4 if address else 0
-        self.address = address if address else 0
-        if not self.address:
-            self.Disable()
-        self.bit = bit
-        self.UpdateSelection()
-
-    def UpdateSelection(self):
-        if self.address:
-            self.SetSelection(self.read_reg())
-
-    def read_reg(self):
-        bytes = reg.GetByte(address=self.address)
-        b = bin(ord(bytes[self.index]))[2:]
-        b = "0" * (8 - len(b)) + b
-        return 1 if b[7 - self.bit] == '1' else 0
-
-    def write_reg(self):
-        pass
-
-
-class BandbasePowerSetting(object):
+class BandbasePowerSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.item = item
         logger.debug("BandbasePowerSetting:Init")
         logger.debug(item)
+        self.address = item['address']
         title_name = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, (120, -1), 0)
         title_name.Wrap(-1)
         self.slider = wx.Slider(panel, wx.ID_ANY, 0, 1, 63, wx.DefaultPosition, wx.DefaultSize,
@@ -186,29 +172,34 @@ class BandbasePowerSetting(object):
         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
         self.sizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
         self.sizer.Add(self.static_text, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
-        self.UpdateValue()
 
     def get_sizer(self):
         return self.sizer
 
-    def UpdateValue(self):
-        import random
-        x = random.randint(0, 63)
-        self.slider.SetValue(x)
-        self.static_text.SetLabel(str(-15.5 + 0.25 * x))
+    def refresh(self):
+        value = reg.GetByte(self.address)
+        b = '{0:08b}'.format(ord(value))[::-1]
+        b = int(b[0:6], 2)
+        self.slider.SetValue(b)
+        self.static_text.SetLabel(str(-15.5 + 0.25 * (b - 1)))
 
     def on_scroll_changed(self, event):
-        pass
-        # x = self.slider.GetValue()
-        # self.static_text.SetLabel(str(-15.5 + 0.25 * x))
+        x = self.slider.GetValue()
+        self.static_text.SetLabel(str(-15.5 + 0.25 * (x - 1)))
+        byte = reg.GetByte(address=self.address)
+        b = '{0:08b}'.format(ord(byte))[0:2]
+        x = '{0:06b}'.format(x)
+        value = int(b + x, 2)
+        reg.SetByte(address=self.address, byte=value)
 
     def on_scroll(self, event):
         x = self.slider.GetValue()
         self.static_text.SetLabel(str(-15.5 + 0.25 * (x - 1)))
 
 
-class FreqPointSetting(object):
+class FreqPointSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         logger.debug("FreqPointSetting:Init")
@@ -217,49 +208,121 @@ class FreqPointSetting(object):
         title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
         self.tx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
         self.rx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
+        self.tx_address = item['tx']
+        self.rx_address = item['rx']
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.tx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.rx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
-        if not item['tx']: self.tx_tc.Disable()
-        if not item['rx']: self.rx_tc.Disable()
+        if not item['tx']:
+            self.tx_tc.Disable()
+        if not item['rx']:
+            self.rx_tc.Disable()
+
+    def refresh(self):
+        self.__refresh(self.rx_address, self.rx_tc)
+        self.__refresh(self.tx_address, self.tx_tc)
+
+    def __refresh(self, address, text_ctrl):
+        if not address:
+            return
+        value = reg.GetBytes(address=address, reverse=-1)
+        d1d3 = self.__convert_d1d3(value[0:3])
+        d0 = ord(value[3])
+        rf_multi = 60
+        f = (d1d3 / 16777216 + d0) * rf_multi
+        text_ctrl.SetValue(str(f))
+
+    @staticmethod
+    def __convert_d1d3(lst):
+        value = 0.0
+        for x in lst:
+            value * 256 + ord(x)
+        return value
 
     def get_sizer(self):
         return self.sizer
 
 
-class PA_Setting(object):
+class PA_Setting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         logger.debug("PA_Setting:Init")
         logger.debug(item)
         width = 95
+        self.a20 = self.item['a20']
+        self.a21 = self.item['a21']
+        self.a50 = self.item['a50']
+        self.a51 = self.item['a51']
+
         title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
         self.a20_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
-                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='a20')
         self.a21_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
-                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='a21')
         self.a50_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
-                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='a50')
         self.a51_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
-                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                  majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='a51')
 
+        self.a20_rb.Bind(wx.EVT_RADIOBOX, self.update)
+        self.a21_rb.Bind(wx.EVT_RADIOBOX, self.update)
+        self.a50_rb.Bind(wx.EVT_RADIOBOX, self.update)
+        self.a51_rb.Bind(wx.EVT_RADIOBOX, self.update)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.a20_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
         self.sizer.Add(self.a21_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
         self.sizer.Add(self.a50_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
         self.sizer.Add(self.a51_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-        if not item['a20']: self.a20_rb.Disable()
-        if not item['a21']: self.a21_rb.Disable()
-        if not item['a50']: self.a50_rb.Disable()
-        if not item['a51']: self.a51_rb.Disable()
+        self.disable_useless()
 
     def get_sizer(self):
         return self.sizer
 
+    def disable_useless(self):
+        self.a20_rb.Disable()
+        self.a21_rb.Disable()
+        self.a50_rb.Disable()
+        self.a51_rb.Disable()
+        if self.a20:
+            self.lst.append((self.a20, self.a20_rb))
+            self.a20_rb.Enable()
+        if self.a21:
+            self.lst.append((self.a21, self.a21_rb))
+            self.a21_rb.Enable()
+        if self.a50:
+            self.lst.append((self.a50, self.a50_rb))
+            self.a50_rb.Enable()
+        if self.a51:
+            self.lst.append((self.a51, self.a51_rb))
+            self.a51_rb.Enable()
 
-class RFChannelSetting(object):
+    def refresh(self):
+        self.last_address = None
+        self.last_value = None
+        for address, radio_box in self.lst:
+            self.__refresh(address, radio_box)
+
+    def __refresh(self, address, radio_box):
+        address, bit = address
+        if self.last_address == address:
+            set_radio_box(self.last_value, bit, radio_box)
+        else:
+            self.last_address = address
+            self.last_value = reg.GetByte(address=address)
+            set_radio_box(self.last_value, bit, radio_box)
+
+    def update(self, event):
+        obj = event.GetEventObject()
+        address, bit = self.__getattribute__(obj.GetName())
+        is_true = True if obj.GetSelection() == 1 else False
+        reg.SetBit(address=address, bit=bit, is_true=is_true)
+
+
+class RFChannelSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         logger.debug("RFChannelSetting:Init")
@@ -267,14 +330,55 @@ class RFChannelSetting(object):
         width = 95
         title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
         self.tx_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=['2G', '5G'],
-                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='tx')
         self.rx_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=['2G', '5G'],
-                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+                                 majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='rx')
+        self.tx_rb.Bind(wx.EVT_RADIOBOX, self.update)
+        self.rx_rb.Bind(wx.EVT_RADIOBOX, self.update)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.tx_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
         self.sizer.Add(self.rx_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
-        if not item['tx']: self.tx_rb.Disable()
-        if not item['rx']: self.rx_rb.Disable()
+        self.tx = item['tx']
+        self.rx = item['rx']
+        self.disable_useless()
 
     def get_sizer(self):
         return self.sizer
+
+    def disable_useless(self):
+        self.tx_rb.Disable()
+        self.rx_rb.Disable()
+        if self.tx:
+            self.lst.append((self.tx, self.tx_rb))
+            self.tx_rb.Enable()
+        if self.rx:
+            self.lst.append((self.rx, self.rx_rb))
+            self.rx_rb.Enable()
+
+    def refresh(self):
+        self.last_address = None
+        self.last_value = None
+        for address, radio_box in self.lst:
+            self.__refresh(address, radio_box)
+
+    def __refresh(self, address, radio_box):
+        address, bit = address
+        if self.last_address == address:
+            set_radio_box(self.last_value, bit, radio_box)
+        else:
+            self.last_address = address
+            self.last_value = reg.GetByte(address=address)
+            set_radio_box(self.last_value, bit, radio_box)
+
+    def update(self, event):
+        obj = event.GetEventObject()
+        address, bit = self.__getattribute__(obj.GetName())
+        is_true = True if obj.GetSelection() == 1 else False
+        reg.SetBit(address=address, bit=bit, is_true=is_true)
+
+
+if __name__ == '__main__':
+    app = wx.App()
+    frame = RadioFrequencyDialog()
+    frame.Show()
+    app.MainLoop()

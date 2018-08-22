@@ -11,6 +11,9 @@ reg = Instrument.get_register()
 logger = Utility.getLogger(__name__)
 
 RegisterSettingPage = [Configuration.snr_config, Configuration.rssi_config, Configuration.bler_config]
+rssi_objects = [x['name'] for x in Configuration.rssi_config]
+snr_object = [x['name'] for x in Configuration.snr_config]
+bler_object = [x['name'] for x in Configuration.bler_config]
 
 
 class RegisterSetting(NotebookBase):
@@ -150,21 +153,20 @@ class RegisterSetting(NotebookBase):
 
     def on_add_mpl(self, event):
         if not self.dialog_mpl:
-            for config in RegisterSettingPage:
-                for item in config:
-
-
-            self.dialog_mpl = Dialog.MplDialog(RegisterSettingPage)
+            rssi = [self.__getattribute__(obj) for obj in rssi_objects]
+            snr = [self.__getattribute__(obj) for obj in snr_object]
+            bler = [self.__getattribute__(obj) for obj in bler_object]
+            self.dialog_mpl = Dialog.MplDialog(rssi=rssi, snr=snr, bler=bler)
         if self.dialog_mpl.IsShown():
             self.dialog_mpl.Destroy()
         else:
             self.dialog_mpl.Show()
 
 
-class RSSI(object):
+class RSSI(Dialog.ObjectBase):
     def __init__(self, panel, item):
+        Dialog.ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.item = item
         logger.debug("RSSI Data:Init")
         logger.debug(item)
         width = 95
@@ -183,6 +185,10 @@ class RSSI(object):
         self.sizer.Add(self.a1_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.a2_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.a3_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        self.list_a0 = list()
+        self.list_a1 = list()
+        self.list_a2 = list()
+        self.list_a3 = list()
         self.refresh()
 
     def disable(self):
@@ -192,46 +198,92 @@ class RSSI(object):
         self.a3_tc.Disable()
 
     def refresh(self):
-        self.a0_tc.SetValue(self.__get_reg_data(self.a0))
-        self.a1_tc.SetValue(self.__get_reg_data(self.a1))
-        self.a2_tc.SetValue(self.__get_reg_data(self.a2))
-        self.a3_tc.SetValue(self.__get_reg_data(self.a3))
+        self.a0_tc.SetValue(self.get_reg_data(self.a0))
+        self.a1_tc.SetValue(self.get_reg_data(self.a1))
+        self.a2_tc.SetValue(self.get_reg_data(self.a2))
+        self.a3_tc.SetValue(self.get_reg_data(self.a3))
 
-    def __get_reg_data(self, address):
+    def clear(self):
+        self.list_a0 = list()
+        self.list_a1 = list()
+        self.list_a2 = list()
+        self.list_a3 = list()
+        return self.list_a0, self.list_a1, self.list_a2, self.list_a3,
+
+    def next(self):
+        self.a0_tc.SetValue(self.__get_reg_data(self.a0, self.list_a0))
+        self.a1_tc.SetValue(self.__get_reg_data(self.a1, self.list_a1))
+        self.a2_tc.SetValue(self.__get_reg_data(self.a2, self.list_a2))
+        self.a3_tc.SetValue(self.__get_reg_data(self.a3, self.list_a3))
+        return self.list_a0, self.list_a1, self.list_a2, self.list_a3,
+
+    def get_reg_data(self, address):
         sim_address, dig_address = address
-        data = reg.GetByte(address=sim_address, reverse=1)
+        data = reg.GetBytes(address=sim_address, reverse=1)
         sim_rssi = ord(data[sim_address % 4])
         dig_rssi = ord(data[dig_address % 4])
+        rssi = -(sim_rssi + dig_rssi)
         logger.debug('%s:sim:%s,dig:%s' % (self.item['name'], sim_rssi, dig_rssi))
-        return str(-(sim_rssi + dig_rssi))
+        return str(rssi)
 
-    def get_sizer(self):
-        return self.sizer
+    def __get_reg_data(self, address, lst):
+        sim_address, dig_address = address
+        data = reg.GetBytes(address=sim_address, reverse=1)
+        sim_rssi = ord(data[sim_address % 4])
+        dig_rssi = ord(data[dig_address % 4])
+        rssi = -(sim_rssi + dig_rssi)
+        lst.append(int(rssi))
+        logger.debug('%s:sim:%s,dig:%s' % (self.item['name'], sim_rssi, dig_rssi))
+        return str(rssi)
 
 
-class SNR(object):
+class SNR(Dialog.ObjectBase):
     def __init__(self, panel, item, _type):
+        Dialog.ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.item = item
         self.usr = item['usr']
         logger.debug("SNR Data:Init")
         logger.debug(item)
+
         width = 95
         title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
         self.snr_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.snr_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        self.lst = list()
         self.refresh()
+
+    def clear(self):
+        self.lst = list()
+
+    def next(self):
+        self.snr_tc.SetValue(self.__get_reg_data(self.usr, self.lst))
+        return self.lst
 
     def disable(self):
         self.snr_tc.Disable()
 
     def refresh(self):
-        self.snr_tc.SetValue(self.__get_reg_data(self.usr))
+        self.snr_tc.SetValue(self.get_reg_data(self.usr))
 
-    def __get_reg_data(self, address):
+    def __get_reg_data(self, address, lst):
         first_address, second_address = address
-        data = reg.GetByte(first_address, reverse=1)
+        data = reg.GetBytes(first_address, reverse=1)
+        first_value = ord(data[first_address % 4])
+        second_value = ord(data[second_address % 4])
+        logger.info('%s:1st:%s,2nd:%s ' % (self.item['name'], first_value, second_value))
+        value = second_value * 256 + first_value
+        data = value / 64.0
+        if data == 0:
+            lst.append(0)
+            return '0'
+        data = round(10 * log10(data), 1)
+        lst.append(data)
+        return str(data)
+
+    def get_reg_data(self, address):
+        first_address, second_address = address
+        data = reg.GetBytes(first_address, reverse=1)
         first_value = ord(data[first_address % 4])
         second_value = ord(data[second_address % 4])
         logger.info('%s:1st:%s,2nd:%s ' % (self.item['name'], first_value, second_value))
@@ -242,14 +294,11 @@ class SNR(object):
         data = round(10 * log10(data), 1)
         return str(data)
 
-    def get_sizer(self):
-        return self.sizer
 
-
-class BLER(object):
+class BLER(Dialog.ObjectBase):
     def __init__(self, panel, item):
+        Dialog.ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.item = item
         self.total = item['total']
         self.error = item['error']
         logger.debug("BLER Data:Init")
@@ -259,18 +308,26 @@ class BLER(object):
         self.bler_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.bler_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        self.lst = list()
         self.refresh()
+
+    def clear(self):
+        self.lst = list()
 
     def disable(self):
         self.bler_tc.Disable()
 
     def refresh(self):
-        self.bler_tc.SetValue(self.__get_reg_data(self.total, self.error))
+        self.bler_tc.SetValue(self.get_reg_data(self.total, self.error))
 
-    def __get_reg_data(self, total, error):
+    def next(self):
+        self.bler_tc.SetValue(self.__get_reg_data(self.total, self.error, self.lst))
+        return self.lst
+
+    def get_reg_data(self, total, error):
         def get_value(address):
             first_address, second_address = address
-            data = reg.GetByte(first_address, reverse=1)
+            data = reg.GetBytes(first_address, reverse=1)
             value = ord(data[second_address % 4]) * 256 + ord(data[first_address % 4])
             return value
 
@@ -279,7 +336,21 @@ class BLER(object):
         logger.info('%s:error:%s,total:%s' % (self.item['name'], error_value, total_value))
         if total_value == 0:
             return '0'
-        return str(error_value / total_value)
+        return str(error_value * 100 / total_value)
 
-    def get_sizer(self):
-        return self.sizer
+    def __get_reg_data(self, total, error, lst):
+        def get_value(address):
+            first_address, second_address = address
+            data = reg.GetBytes(first_address, reverse=1)
+            value = ord(data[second_address % 4]) * 256 + ord(data[first_address % 4])
+            return value
+
+        total_value = get_value(total)
+        error_value = get_value(error)
+        logger.info('%s:error:%s,total:%s' % (self.item['name'], error_value, total_value))
+        if total_value == 0:
+            lst.append(0)
+            return '0'
+        value = error_value * 100 / total_value
+        lst.append(value)
+        return str(value)

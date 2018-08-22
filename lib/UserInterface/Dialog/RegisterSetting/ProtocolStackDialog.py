@@ -3,18 +3,24 @@ from lib.UserInterface.Dialog import DialogBase
 import wx
 from lib.Config import Instrument
 from lib.ProtocolStack import Configuration
+from ObjectBase import ObjectBase
 
 reg = Instrument.get_register()
+PS_configs = [
+    Configuration.user_interleave_config, Configuration.br_interleave_config,
+    Configuration.user_bandwidth_config, Configuration.br_cs_bandwidth_config,
+    Configuration.clear_config, Configuration.lock_config,
+    Configuration.reset_config, Configuration.MCS_config,
+    Configuration.antenna_mode_config,
+    Configuration.slot_mimo_mode_config,
+]
 
 
 class ProtocolStackDialog(DialogBase.DialogWindow):
     def __init__(self, name=u"基带设置", size=(790, 560)):
         DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
-
-    def Show(self, show=1):
         self.panel.Refresh()
-        super(DialogBase.DialogWindow, self).Show(show=show)
 
 
 class Panel(wx.Panel):
@@ -57,7 +63,12 @@ class Panel(wx.Panel):
         self.Layout()
 
     def Refresh(self):
-        pass
+        for config in PS_configs:
+            if type(config) == list:
+                for item in config:
+                    self.__getattribute__(item['name']).refresh()
+            elif type(config) == dict:
+                self.__getattribute__(item['name']).refresh()
 
     def on_TODO(self, event):
         pass
@@ -211,8 +222,9 @@ class Panel(wx.Panel):
         return Sizer
 
 
-class UserInterleave(object):
+class UserInterleave(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -233,8 +245,9 @@ class UserInterleave(object):
         return self.sizer
 
 
-class BrInterleave(object):
+class BrInterleave(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -256,8 +269,9 @@ class BrInterleave(object):
         return self.sizer
 
 
-class ModulationCodingSchemeSetting(object):
+class ModulationCodingSchemeSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         name = item['name']
@@ -281,8 +295,9 @@ class ModulationCodingSchemeSetting(object):
         return self.sizer
 
 
-class BR_CS_BandwidthSetting(object):
+class BR_CS_BandwidthSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         br_sizer = wx.BoxSizer(wx.VERTICAL)
         cs_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -311,8 +326,9 @@ class BR_CS_BandwidthSetting(object):
         return self.sizer
 
 
-class UserBandwidthSetting(object):
+class UserBandwidthSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         bandwitdth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
@@ -328,8 +344,9 @@ class UserBandwidthSetting(object):
         return self.sizer
 
 
-class AntennaModeSetting(object):
+class AntennaModeSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.item = item
         send_ANT_choice = [u'1天线', u'2天线']
@@ -352,8 +369,9 @@ class AntennaModeSetting(object):
         return self.sizer
 
 
-class SlotMimoModeSetting(object):
+class SlotMimoModeSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.item = item
         slot_choice = ['1t1r', '1t2r', '1t4r', '2t2r', '2t4r']
@@ -392,8 +410,9 @@ class SlotMimoModeSetting(object):
         return self.sizer
 
 
-class LockSetting(object):
+class LockSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -409,8 +428,9 @@ class LockSetting(object):
         return self.sizer
 
 
-class ClearSetting(object):
+class ClearSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -424,8 +444,9 @@ class ClearSetting(object):
         return self.sizer
 
 
-class ResetSetting(object):
+class ResetSetting(ObjectBase):
     def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         self.check_reset = wx.CheckBox(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -433,3 +454,10 @@ class ResetSetting(object):
 
     def get_sizer(self):
         return self.sizer
+
+
+if __name__ == '__main__':
+    app = wx.App()
+    frame = ProtocolStackDialog()
+    frame.Show()
+    app.MainLoop()

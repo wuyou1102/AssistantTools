@@ -231,7 +231,7 @@ class Aerial(object):
 
     def _read_register(self, address):
         reg = Instrument.get_register()
-        byte = reg.GetByte(address=address)
+        byte = reg.GetBytes(address=address)
         if byte:
             return byte[0], byte[1], byte[2], byte[3]
         return False, False, False, False

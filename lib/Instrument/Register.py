@@ -72,22 +72,63 @@ class Register(object):
             return False
         return True
 
-    def Get(self, address, reverse=-1):
+    def SetByte(self, address, byte):
+        if self.lock.acquire():
+            try:
+                return self.__set_byte(address=address, byte=byte)
+            finally:
+                self.lock.release()
 
+    def __set_byte(self, address, byte):
+        data = self.__get_bytes(address, reverse=1)
+        if data:
+            tmp = list(data)
+            if type(byte) == int:
+                tmp[address % 4] = chr(byte)
+            elif type(byte) == str:
+                tmp[address % 4] = binascii.a2b_hex(byte)
+            string = ''
+            for x in tmp[::-1]:
+                string += binascii.b2a_hex(x)
+            return self.__set(address=address, data=string)
+
+        else:
+            return False
+
+    def Get(self, address, reverse=-1):
         if self.lock.acquire():
             try:
                 return self.__get(address=address, reverse=reverse)
             finally:
                 self.lock.release()
 
-    def GetByte(self, address, reverse=1):
+    def GetBytes(self, address, reverse=1):
         if self.lock.acquire():
             try:
-                return self.__get_byte(address=address, reverse=reverse)
+                return self.__get_bytes(address=address, reverse=reverse)
             finally:
                 self.lock.release()
 
-    def __get_byte(self, address, reverse):
+    def __get_bytes(self, address, reverse):
+        tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
+        result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
+        if not result:
+            if self.Reconnect():
+                return self.__get_bytes(address=address, reverse=reverse)
+            return False
+            # raise IOError('Can not get address info.')
+        Logger.debug(
+            'Read Address \"%s\" byte is \"%s\" and func result is  \"%s\"' % (hex(address), repr(tmp_str.raw), result))
+        return tmp_str.raw[::reverse]
+
+    def GetByte(self, address):
+        if self.lock.acquire():
+            try:
+                return self.__get_byte(address=address)
+            finally:
+                self.lock.release()
+
+    def __get_byte(self, address):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
         if not result:
@@ -97,14 +138,14 @@ class Register(object):
             # raise IOError('Can not get address info.')
         Logger.debug(
             'Read Address \"%s\" byte is \"%s\" and func result is  \"%s\"' % (hex(address), repr(tmp_str.raw), result))
-        return tmp_str.raw[::reverse]
+        return tmp_str.raw[address % 4]
 
     def __get(self, address, reverse):
         tmp_str = create_string_buffer(b"\0\0\0\0", 4)  # create a 4 byte buffer
         result = self.__GetReg(self.__ConvertAddress(address), tmp_str)
         if not result:
             if self.Reconnect():
-                return self.__get(address=address)
+                return self.__get(address=address, reverse=reverse)
             return False
         value = binascii.b2a_hex(tmp_str.raw[::reverse]).upper()
         Logger.debug(
@@ -123,10 +164,43 @@ class Register(object):
         elif t == unicode:
             return int(data, 16)
 
+    def GetBit(self, address, bit):
+        if self.lock.acquire():
+            try:
+                return self.__get_bit(address=address, bit=bit)
+            finally:
+                self.lock.release()
+
+    def __get_bit(self, address, bit):
+        byte = self.__get_byte(address=address)
+        if byte:
+            b = '{0:08b}'.format(ord(byte))[::-1]
+            return b[bit]
+        else:
+            return False
+
+    def SetBit(self, address, bit, is_true):
+        if self.lock.acquire():
+            try:
+                return self.__set_bit(address=address, bit=bit, is_true=is_true)
+            finally:
+                self.lock.release()
+
+    def __set_bit(self, address, bit, is_true):
+        byte = self.__get_byte(address=address)
+        if byte:
+            b = '{0:08b}'.format(ord(byte))
+            tmp = list(b)
+            tmp[7 - bit] = '1' if is_true else '0'
+            b = ''.join(tmp)
+            return self.__set_byte(address, int(b, 2))
+        else:
+            return False
+
 
 if __name__ == '__main__':
     r = Register()
     print r.Get(address=0x60680000, reverse=1)  # 从小到大 00 01 02 03
     print r.Get(address=0x60680000, reverse=-1)  # 从大到小 03 02 01 00
-    print repr(r.GetByte(address=0x60680000, reverse=1))
-    print repr(r.GetByte(address=0x60680000, reverse=-1))
+    print repr(r.GetBytes(address=0x60680000, reverse=1))
+    print repr(r.GetBytes(address=0x60680000, reverse=-1))
