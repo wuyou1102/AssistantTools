@@ -270,7 +270,7 @@ user_bandwidth_config = {
     'title': u'用户',
     'recv_address': {
         'user0': (0x60680153, 0, 2),
-        'user1': (0x6068015E, 0, 2),
+        'user1': (0x6068015B, 0, 2),
         'user2': (0x60680163, 0, 2),
         'user3': (0x6068016B, 0, 2),
     },

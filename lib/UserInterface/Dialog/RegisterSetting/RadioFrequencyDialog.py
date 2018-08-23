@@ -178,8 +178,9 @@ class BandbasePowerSetting(ObjectBase):
 
     def refresh(self):
         value = reg.GetByte(self.address)
-        b = '{0:08b}'.format(ord(value))[::-1]
-        b = int(b[0:6], 2)
+        b = '{0:08b}'.format(ord(value))
+        print b
+        b = int(b[2:], 2)
         self.slider.SetValue(b)
         self.static_text.SetLabel(str(-15.5 + 0.25 * (b - 1)))
 

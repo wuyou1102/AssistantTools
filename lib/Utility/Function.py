@@ -36,6 +36,11 @@ def find_in_string(pattern, string):
         return result
 
 
+def convert2bin(value, reverse=1):
+    b = '{0:08b}'.format(ord(value))[::reverse]
+    return b
+
+
 # TODO
 def check_hex_input(string):
     pass

@@ -4,6 +4,7 @@ import wx
 from lib.Config import Instrument
 from lib.ProtocolStack import Configuration
 from ObjectBase import ObjectBase
+from lib import Utility
 
 reg = Instrument.get_register()
 PS_configs = [
@@ -240,6 +241,37 @@ class UserInterleave(ObjectBase):
         self.sizer.Add(self.total_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.mode_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.text_ctrl, 0, wx.ALL, 5)
+        self.total_user0 = item['total_address']['user0']
+        self.mode_user0 = item['mode_address']['user0']
+        self.total_user1 = item['total_address']['user1']
+        self.mode_user1 = item['mode_address']['user1']
+        self.total_user1 = item['total_address']['user2']
+        self.mode_user1 = item['mode_address']['user2']
+        self.total_user1 = item['total_address']['user3']
+        self.mode_user1 = item['mode_address']['user3']
+        self.dict_mapping_t = {
+            '12': '001',
+            '24': '011',
+            '48': '100',
+            '96': '101',
+        }
+        self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
+        self.dict_mapping_m = {
+            '12': '101',
+            '24': '110',
+            '48': '111',
+        }
+        self.dict_m = {v: k for k, v in self.dict_mapping_m.items()}
+
+    def refresh(self):
+        t_a, t_s, t_e = self.total_user0  # total _ address _start_bit _end_bit
+        m_a, m_s, m_e = self.mode_user0  # mode
+        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
+        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
+        self.total_choice.SetStringSelection(self.dict_t[t_value])
+        self.mode_choice.SetStringSelection(self.dict_m[m_value])
+        self.text_ctrl.SetValue(
+            str(int(self.total_choice.GetStringSelection()) * int(self.mode_choice.GetStringSelection())))
 
     def get_sizer(self):
         return self.sizer
@@ -264,6 +296,18 @@ class BrInterleave(ObjectBase):
         self.sizer.Add(self.total_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.mode_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.text_ctrl, 0, wx.ALL, 5)
+        self.total = item['total_address']
+        self.dict_mapping_t = {
+            '6': '000',
+            '12': '001',
+            '24': '011',
+        }
+        self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
+
+    def refresh(self):
+        t_a, t_s, t_e = self.total  # total _ address _start_bit _end_bit
+        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
+        self.total_choice.SetStringSelection(self.dict_t[t_value])
 
     def get_sizer(self):
         return self.sizer
@@ -278,7 +322,8 @@ class ModulationCodingSchemeSetting(ObjectBase):
 
         modulations = ['BPSK', 'QPSK', '16QAM', '64QAM', '256QAM'] if name.startswith("user") else ['BPSK', 'QPSK']
         codings = ['1/2', '2/3A', '2/3B', '3/4A', '3/4B', '5/6'] if name.startswith("user") else ['1/2', '2/3']
-        repeats = ['hello', 'world']
+        repeats = ['T:1 | F:1', 'T:1 | F:2', 'T:1 | F:4', 'T:2 | F:1', 'T:2 | F:2', 'T:2 | F:4', 'T:4 | F:1',
+                   'T:4 | F:2']
 
         width = 70
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
@@ -290,9 +335,52 @@ class ModulationCodingSchemeSetting(ObjectBase):
         self.sizer.Add(self.modulation_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.coding_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.repeat_choice, 0, wx.ALL, 5)
+        self.modem = item['modem']
+        self.encode = item['encode']
+        self.repeat = item['repeat']
+        self.dict_mapping_modulations = {
+            'BPSK': '000',
+            'QPSK': '001',
+            '16QAM': '010',
+            '64QAM': '011',
+            '256QAM': '100'
+        }
+        self.dict_mapping_codings = {
+            '1/2': '000',
+            '2/3': '001',
+            '2/3A': '001',
+            '2/3B': '010',
+            '3/4A': '011',
+            '3/4B': '100',
+            '5/6': '101'
+        }
+        self.dict_mapping_repeats = {
+            'T:1 | F:1': '000',
+            'T:1 | F:2': '001',
+            'T:1 | F:4': '010',
+            'T:2 | F:1': '011',
+            'T:2 | F:2': '100',
+            'T:2 | F:4': '101',
+            'T:4 | F:1': '110',
+            'T:4 | F:2': '111',
+        }
 
     def get_sizer(self):
         return self.sizer
+
+    def refresh(self):
+        m_a, m_s, m_e = self.modem  # modem   _address _start _end
+        e_a, e_s, e_e = self.encode  # encode
+        r_a, r_s, r_e = self.repeat  # repeat
+        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
+        e_value = Utility.convert2bin(reg.GetByte(e_a))[7 - e_e:8 - e_s]
+        r_value = Utility.convert2bin(reg.GetByte(r_a))[7 - r_e:8 - r_s]
+        print m_value
+        print e_value
+        print r_value
+        self.modulation_choice.SetSelection(int(m_value, 2))
+        self.coding_choice.SetSelection(int(e_value, 2))
+        self.repeat_choice.SetSelection(int(r_value, 2))
 
 
 class BR_CS_BandwidthSetting(ObjectBase):
