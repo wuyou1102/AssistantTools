@@ -209,7 +209,10 @@ class DataModule(object):
             CallAfter(self.__list_view.AddObject, air)
 
     def __merge_air_and_e2e(self, air):
-        last_msg = self.__data[-1]
+        try:
+            last_msg = self.__data[-1]
+        except IndexError:
+            last_msg = None
         if type(last_msg) == libs.e2eMessage:
             if air.merge(last_msg):
                 self.__data.pop(-1)

@@ -244,7 +244,7 @@ MCS_config = [
     },
     {
         'name': 'br_send',
-        'title': u'BR发送',
+        'title': u'CS/BR发送',
         'modem': (0x60680017, 4, -1),
         'encode': (0x60680017, 3, -1),
         'repeat': (0x60680016, 4, 6),
@@ -275,10 +275,10 @@ user_bandwidth_config = {
         'user3': (0x6068016B, 0, 2),
     },
     'send_address': {
-        'user0': (0x60680007, 0, 2),
-        'user1': (0x6068000B, 0, 2),
-        'user2': (0x6068000F, 0, 2),
-        'user3': (0x60680013, 0, 2),
+        'user0': (0x60680007, 4, 6),
+        'user1': (0x6068000B, 4, 6),
+        'user2': (0x6068000F, 4, 6),
+        'user3': (0x60680013, 4, 6),
     },
 }
 antenna_mode_config = {

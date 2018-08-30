@@ -310,7 +310,7 @@ class SNRPanel(BaseMplPanel):
         self.update()
 
     def __init_plot(self, linestyle='--'):
-        linewidth = 0.9
+        linewidth = 1.1
         self._line0, = self.Axes.plot(numpy.array([]), numpy.array([]), color="#2E86C1", linewidth=linewidth,
                                       label=u'User 0', linestyle=linestyle)
         self._line1, = self.Axes.plot(numpy.array([]), numpy.array([]), color="black", linewidth=linewidth,
@@ -376,7 +376,7 @@ class BLERPanel(BaseMplPanel):
         self.update()
 
     def __init_plot(self, linestyle='--'):
-        linewidth = 0.9
+        linewidth = 1.1
         self._line0, = self.Axes.plot(numpy.array([]), numpy.array([]), color="#2E86C1", linewidth=linewidth,
                                       label=u'User 0', linestyle=linestyle)
         self._line1, = self.Axes.plot(numpy.array([]), numpy.array([]), color="black", linewidth=linewidth,

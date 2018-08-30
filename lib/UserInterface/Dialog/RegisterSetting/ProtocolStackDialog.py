@@ -5,7 +5,9 @@ from lib.Config import Instrument
 from lib.ProtocolStack import Configuration
 from ObjectBase import ObjectBase
 from lib import Utility
+import logging
 
+logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
 PS_configs = [
     Configuration.user_interleave_config, Configuration.br_interleave_config,
@@ -69,7 +71,7 @@ class Panel(wx.Panel):
                 for item in config:
                     self.__getattribute__(item['name']).refresh()
             elif type(config) == dict:
-                self.__getattribute__(item['name']).refresh()
+                self.__getattribute__(config['name']).refresh()
 
     def on_TODO(self, event):
         pass
@@ -233,7 +235,9 @@ class UserInterleave(ObjectBase):
         m = ['12', '24', '48']
         width = 60
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
+        self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
+        self.mode_choice.Bind(wx.EVT_CHOICE, self.update_mode)
         self.text_ctrl = wx.TextCtrl(panel, wx.ID_ANY, "1152", wx.DefaultPosition, (width, -1),
                                      wx.TE_LEFT | wx.TE_READONLY)
 
@@ -241,40 +245,59 @@ class UserInterleave(ObjectBase):
         self.sizer.Add(self.total_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.mode_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.text_ctrl, 0, wx.ALL, 5)
-        self.total_user0 = item['total_address']['user0']
-        self.mode_user0 = item['mode_address']['user0']
-        self.total_user1 = item['total_address']['user1']
-        self.mode_user1 = item['mode_address']['user1']
-        self.total_user1 = item['total_address']['user2']
-        self.mode_user1 = item['mode_address']['user2']
-        self.total_user1 = item['total_address']['user3']
-        self.mode_user1 = item['mode_address']['user3']
+        self.total_users = [item['total_address']['user%s' % x] for x in range(4)]
+        self.mode_users = [item['mode_address']['user%s' % x] for x in range(4)]
         self.dict_mapping_t = {
-            '12': '001',
-            '24': '011',
-            '48': '100',
-            '96': '101',
+            u'12': '001',
+            u'24': '011',
+            u'48': '100',
+            u'96': '101',
         }
         self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
         self.dict_mapping_m = {
-            '12': '101',
-            '24': '110',
-            '48': '111',
+            u'12': '101',
+            u'24': '110',
+            u'48': '111',
         }
         self.dict_m = {v: k for k, v in self.dict_mapping_m.items()}
 
     def refresh(self):
-        t_a, t_s, t_e = self.total_user0  # total _ address _start_bit _end_bit
-        m_a, m_s, m_e = self.mode_user0  # mode
+        t_a, t_s, t_e = self.total_users[0]  # total _ address _start_bit _end_bit
+        m_a, m_s, m_e = self.mode_users[0]  # mode
         t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
         m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
-        self.total_choice.SetStringSelection(self.dict_t[t_value])
-        self.mode_choice.SetStringSelection(self.dict_m[m_value])
-        self.text_ctrl.SetValue(
-            str(int(self.total_choice.GetStringSelection()) * int(self.mode_choice.GetStringSelection())))
+        self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
+        self.SetStringSelection(selection=self.dict_m.get(m_value, None), wx_choice=self.mode_choice)
+        self.update_tc_value()
 
     def get_sizer(self):
         return self.sizer
+
+    def update_total(self, event):
+        change_value = self.dict_mapping_t[self.total_choice.GetStringSelection()]
+        for user in self.total_users:
+            address, start, end = user
+            byte = reg.GetByte(address=address)
+            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+            reg.SetByte(address=address, byte=int(byte, 2))
+        self.update_tc_value()
+
+    def update_mode(self, event):
+        change_value = self.dict_mapping_m[self.mode_choice.GetStringSelection()]
+        for user in self.mode_users:
+            address, start, end = user
+            byte = reg.GetByte(address=address)
+            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+            reg.SetByte(address=address, byte=int(byte, 2))
+        self.update_tc_value()
+
+    def update_tc_value(self):
+        total = self.total_choice.GetStringSelection()
+        mode = self.mode_choice.GetStringSelection()
+        if total and mode:
+            self.text_ctrl.SetValue(str(int(total) * int(mode)))
+        else:
+            self.text_ctrl.SetValue('')
 
 
 class BrInterleave(ObjectBase):
@@ -287,6 +310,7 @@ class BrInterleave(ObjectBase):
         m = []
         width = 60
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
+        self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
         self.text_ctrl = wx.TextCtrl(panel, wx.ID_ANY, "", wx.DefaultPosition, (width, -1),
                                      wx.TE_LEFT | wx.TE_READONLY)
@@ -305,12 +329,19 @@ class BrInterleave(ObjectBase):
         self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
 
     def refresh(self):
-        t_a, t_s, t_e = self.total  # total _ address _start_bit _end_bit
-        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
-        self.total_choice.SetStringSelection(self.dict_t[t_value])
+        total, start, end = self.total  # total _ address _start_bit _end_bit
+        value = Utility.convert2bin(reg.GetByte(total))[7 - end:8 - start]
+        self.SetStringSelection(self.dict_t.get(value, None), self.total_choice)
 
     def get_sizer(self):
         return self.sizer
+
+    def update_total(self, event):
+        change_value = self.dict_mapping_t[self.total_choice.GetStringSelection()]
+        address, start, end = self.total
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
 
 
 class ModulationCodingSchemeSetting(ObjectBase):
@@ -328,12 +359,14 @@ class ModulationCodingSchemeSetting(ObjectBase):
         width = 70
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         self.modulation_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), modulations, 0)
-        self.coding_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), codings, 0)
+        self.modulation_choice.Bind(wx.EVT_CHOICE, self.update_modulation)
+        self.encoding_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), codings, 0)
+        self.encoding_choice.Bind(wx.EVT_CHOICE, self.update_encoding)
         self.repeat_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), repeats, 0)
-
+        self.repeat_choice.Bind(wx.EVT_CHOICE, self.update_repeat)
         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         self.sizer.Add(self.modulation_choice, 0, wx.ALL, 5)
-        self.sizer.Add(self.coding_choice, 0, wx.ALL, 5)
+        self.sizer.Add(self.encoding_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.repeat_choice, 0, wx.ALL, 5)
         self.modem = item['modem']
         self.encode = item['encode']
@@ -369,18 +402,63 @@ class ModulationCodingSchemeSetting(ObjectBase):
         return self.sizer
 
     def refresh(self):
-        m_a, m_s, m_e = self.modem  # modem   _address _start _end
-        e_a, e_s, e_e = self.encode  # encode
-        r_a, r_s, r_e = self.repeat  # repeat
-        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
-        e_value = Utility.convert2bin(reg.GetByte(e_a))[7 - e_e:8 - e_s]
-        r_value = Utility.convert2bin(reg.GetByte(r_a))[7 - r_e:8 - r_s]
-        print m_value
-        print e_value
-        print r_value
-        self.modulation_choice.SetSelection(int(m_value, 2))
-        self.coding_choice.SetSelection(int(e_value, 2))
-        self.repeat_choice.SetSelection(int(r_value, 2))
+        modem = self.get_part_bits(*self.modem)
+        encode = self.get_part_bits(*self.encode)
+        repeat = self.get_part_bits(*self.repeat)
+        self.SetSelection(modem, self.modulation_choice)
+        self.SetSelection(encode, self.encoding_choice)
+        self.SetSelection(repeat, self.repeat_choice)
+
+    def get_part_bits(self, address, start, end):
+        if end == -1:
+            return reg.GetBit(address=address, bit=start)
+        return Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+
+    def SetSelection(self, n, wx_choice):
+
+        n = int(n, 2)
+        c = len(wx_choice.Items)
+        if n > c:
+            wx_choice.SetSelection(wx.NOT_FOUND)
+        else:
+            wx_choice.SetSelection(n)
+
+    def update_modulation(self, event):
+        address, start, end = self.modem
+        n = self.modulation_choice.GetSelection()
+        self.__update(value=n, start=start, end=end, address=address)
+        # bits = self.convert2bits(value=n, start=start, end=end)
+        # byte = reg.GetByte(address=address)
+        # byte = Utility.replace_bits(byte=byte, start=start, need_replace=bits)
+        # reg.SetByte(address=address, byte=int(byte, 2))
+
+    def update_encoding(self, event):
+        address, start, end = self.encode
+        n = self.encoding_choice.GetSelection()
+        self.__update(value=n, start=start, end=end, address=address)
+
+    def update_repeat(self, event):
+        address, start, end = self.repeat
+        n = self.repeat_choice.GetSelection()
+        self.__update(value=n, start=start, end=end, address=address)
+
+    def __update(self, value, address, start, end):
+        bits = self.__convert2bits(value=value, start=start, end=end)
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, start=start, need_replace=bits)
+        reg.SetByte(address=address, byte=int(byte, 2))
+
+    def __convert2bits(self, value, start, end):
+        if end == -1:
+            return str(value)
+        else:
+            length = end - start + 1
+            bits = bin(value)[2:]
+            if len(bits) > length:
+                logger.error('bits:%s' % bits)
+                return ''
+            else:
+                return (length - len(bits)) * '0' + bits
 
 
 class BR_CS_BandwidthSetting(ObjectBase):
@@ -390,16 +468,32 @@ class BR_CS_BandwidthSetting(ObjectBase):
         br_sizer = wx.BoxSizer(wx.VERTICAL)
         cs_sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        bandwitdth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        self.dict_mapping_bandwidth = {
+            u'2.5MHz': '001',
+            u'5MHz': '010',
+            u'10MHz': '011',
+            u'20MHz': '100',
+            u'40MHz': '101',
+        }
+        self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
         self.br = item['BR']
         self.cs = item['CS']
+        self.br_recv = self.br['recv_address']
+        self.cs_recv = self.cs['recv_address']
+        self.send = self.cs['send_address']
         width = 60
         br_title_name = wx.StaticText(panel, wx.ID_ANY, self.br["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         cs_title_name = wx.StaticText(panel, wx.ID_ANY, self.cs["title"], wx.DefaultPosition, wx.DefaultSize, 0)
-        self.br_recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
-        self.br_send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
-        self.cs_recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
-        self.cs_send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
+        self.br_recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.br_recv_choice.Bind(wx.EVT_CHOICE, self.update_br_recv)
+        self.br_send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.br_send_choice.Bind(wx.EVT_CHOICE, self.update_send)
+        self.cs_recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.cs_recv_choice.Bind(wx.EVT_CHOICE, self.update_cs_recv)
+        self.cs_send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.cs_send_choice.Bind(wx.EVT_CHOICE, self.update_send)
+
         br_sizer.Add(br_title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         br_sizer.Add(self.br_send_choice, 0, wx.ALL, 5)
         br_sizer.Add(self.br_recv_choice, 0, wx.ALL, 5)
@@ -410,8 +504,47 @@ class BR_CS_BandwidthSetting(ObjectBase):
         self.sizer.Add(br_sizer, 0, wx.ALL, 0)
         self.sizer.Add(cs_sizer, 0, wx.ALL, 0)
 
+    def refresh(self):
+        br_rx_address, br_rx_start, br_rx_end = self.br_recv
+        cs_rx_address, cs_rx_start, cs_rx_end = self.cs_recv
+        tx_address, tx_start, tx_end = self.send
+
+        br_rx_value = Utility.convert2bin(reg.GetByte(br_rx_address))[7 - br_rx_end:8 - br_rx_start]
+        cs_rx_value = Utility.convert2bin(reg.GetByte(cs_rx_address))[7 - cs_rx_end:8 - cs_rx_start]
+        tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
+
+        self.SetStringSelection(selection=self.dict_bandwidth.get(br_rx_value, None), wx_choice=self.br_recv_choice)
+        self.SetStringSelection(selection=self.dict_bandwidth.get(cs_rx_value, None), wx_choice=self.cs_recv_choice)
+        self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.br_send_choice)
+        self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.cs_send_choice)
+
     def get_sizer(self):
         return self.sizer
+
+    def update_br_recv(self, event):
+        change_value = self.dict_mapping_bandwidth[self.br_recv_choice.GetStringSelection()]
+        address, start, end = self.br_recv
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
+
+    def update_cs_recv(self, event):
+        change_value = self.dict_mapping_bandwidth[self.cs_recv_choice.GetStringSelection()]
+        address, start, end = self.cs_recv
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
+
+    def update_send(self, event):
+        obj = event.GetEventObject()
+        selection = obj.GetStringSelection()
+        self.br_send_choice.SetStringSelection(selection)
+        self.cs_send_choice.SetStringSelection(selection)
+        change_value = self.dict_mapping_bandwidth[selection]
+        address, start, end = self.send
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
 
 
 class UserBandwidthSetting(ObjectBase):
@@ -419,17 +552,53 @@ class UserBandwidthSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        bandwitdth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        self.dict_mapping_bandwidth = {
+            u'2.5MHz': '001',
+            u'5MHz': '010',
+            u'10MHz': '011',
+            u'20MHz': '100',
+            u'40MHz': '101',
+        }
+        self.recv_users = [item['recv_address']['user%s' % x] for x in range(4)]
+        self.send_users = [item['send_address']['user%s' % x] for x in range(4)]
+        self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
         width = 60
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
-        self.recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
-        self.send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwitdth, 0)
+        self.recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.recv_choice.Bind(wx.EVT_CHOICE, self.update_recv)
+        self.send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+        self.send_choice.Bind(wx.EVT_CHOICE, self.update_send)
         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         self.sizer.Add(self.send_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.recv_choice, 0, wx.ALL, 5)
 
+    def refresh(self):
+        rx_address, rx_start, rx_end = self.recv_users[0]  # total _ address _start_bit _end_bit
+        tx_address, tx_start, tx_end = self.send_users[0]  # mode
+        rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
+        tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
+        self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
+        self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.send_choice)
+
     def get_sizer(self):
         return self.sizer
+
+    def update_recv(self, event):
+        change_value = self.dict_mapping_bandwidth[self.recv_choice.GetStringSelection()]
+        for user in self.recv_users:
+            address, start, end = user
+            byte = reg.GetByte(address=address)
+            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+            reg.SetByte(address=address, byte=int(byte, 2))
+
+    def update_send(self, event):
+        change_value = self.dict_mapping_bandwidth[self.send_choice.GetStringSelection()]
+        for user in self.send_users:
+            address, start, end = user
+            byte = reg.GetByte(address=address)
+            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+            reg.SetByte(address=address, byte=int(byte, 2))
 
 
 class AntennaModeSetting(ObjectBase):
@@ -439,14 +608,29 @@ class AntennaModeSetting(ObjectBase):
         self.item = item
         send_ANT_choice = [u'1天线', u'2天线']
         recv_ANT_choice = [u'1天线', u'2天线', u'4天线']
-        self.send = item['send']
-        self.recv = item['recv']
+        self.dict_mapping_send = {
+            u'1天线': '0',
+            u'2天线': '1',
+        }
+        self.dict_send = {v: k for k, v in self.dict_mapping_send.items()}
+        self.dict_recv = {
+            '00': u'1天线',
+            '01': u'2天线',
+            '10': u'4天线',
+            '11': u'4天线',
+        }
+        send_title = item['send']['title']
+        recv_title = item['recv']['title']
+        self.send = item['send']['address']
+        self.recv = item['recv']['address']
         SL = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
         width = 60
-        send_title = wx.StaticText(panel, wx.ID_ANY, self.send["title"], wx.DefaultPosition, wx.DefaultSize, 0)
-        recv_title = wx.StaticText(panel, wx.ID_ANY, self.recv["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+        send_title = wx.StaticText(panel, wx.ID_ANY, send_title, wx.DefaultPosition, wx.DefaultSize, 0)
+        recv_title = wx.StaticText(panel, wx.ID_ANY, recv_title, wx.DefaultPosition, wx.DefaultSize, 0)
         self.recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), recv_ANT_choice, 0)
         self.send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), send_ANT_choice, 0)
+        self.send_choice.Bind(wx.EVT_CHOICE, self.update_send)
+        self.recv_choice.Disable()
         self.sizer.Add(send_title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.send_choice, 0, wx.ALL, 5)
         self.sizer.Add(SL, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
@@ -456,13 +640,48 @@ class AntennaModeSetting(ObjectBase):
     def get_sizer(self):
         return self.sizer
 
+    def refresh(self):
+        send_value = self.get_part_bits(*self.send)
+        recv_value = self.get_part_bits(*self.recv)
+        self.SetStringSelection(selection=self.dict_send.get(send_value, None), wx_choice=self.send_choice)
+        self.SetStringSelection(selection=self.dict_recv.get(recv_value, None), wx_choice=self.recv_choice)
+
+    def get_part_bits(self, address, start, end):
+        if end == -1:
+            return reg.GetBit(address=address, bit=start)
+        return Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+
+    def update_send(self, event):
+        change_value = self.dict_mapping_send[self.send_choice.GetStringSelection()]
+        address, start, end = self.send
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
+
 
 class SlotMimoModeSetting(ObjectBase):
     def __init__(self, panel, item):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.item = item
-        slot_choice = ['1t1r', '1t2r', '1t4r', '2t2r', '2t4r']
+        slot_choice = ['1T1R', '1T2R', '1T4R', '2T2R', '2T4R']
+        self.dict_mapping_slot = {
+            '1T1R': '000',
+            '1T2R': '010',
+            '1T4R': '011',
+            '2T2R': '100',
+            '2T4R': '110',
+        }
+        self.dict_slot = {
+            '000': '1T1R',
+            '001': '1T1R',
+            '010': '1T2R',
+            '011': '1T4R',
+            '100': '2T2R',
+            '101': '2T2R',
+            '110': '2T4R',
+            '111': '2T4R',
+        }
         width = 60
         SL1 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
         SL2 = wx.StaticLine(panel, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
@@ -481,7 +700,10 @@ class SlotMimoModeSetting(ObjectBase):
         self.user1_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), slot_choice, 0)
         self.user2_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), slot_choice, 0)
         self.user3_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), slot_choice, 0)
-
+        self.user0_choice.Bind(wx.EVT_CHOICE, self.update_user0)
+        self.user1_choice.Bind(wx.EVT_CHOICE, self.update_user1)
+        self.user2_choice.Bind(wx.EVT_CHOICE, self.update_user2)
+        self.user3_choice.Bind(wx.EVT_CHOICE, self.update_user3)
         self.sizer.Add(user0_title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.user0_choice, 0, wx.ALL, 5)
         self.sizer.Add(SL1, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 6)
@@ -497,6 +719,40 @@ class SlotMimoModeSetting(ObjectBase):
     def get_sizer(self):
         return self.sizer
 
+    def refresh(self):
+        self.__refresh(self.user0, self.user0_choice)
+        self.__refresh(self.user1, self.user1_choice)
+        self.__refresh(self.user2, self.user2_choice)
+        self.__refresh(self.user3, self.user3_choice)
+
+    def update_user0(self, event):
+        self.__update(self.user0, self.user0_choice)
+
+    def update_user1(self, event):
+        self.__update(self.user1, self.user1_choice)
+
+    def update_user2(self, event):
+        self.__update(self.user2, self.user2_choice)
+
+    def update_user3(self, event):
+        self.__update(self.user3, self.user3_choice)
+
+    def __update(self, user, wx_choice):
+        change_value = self.dict_mapping_slot[wx_choice.GetStringSelection()]
+        address, start, end = user['address']
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
+
+    def __refresh(self, user, wx_choice):
+        value = self.get_part_bits(*user['address'])
+        self.SetStringSelection(selection=self.dict_slot.get(value, None), wx_choice=wx_choice)
+
+    def get_part_bits(self, address, start, end):
+        if end == -1:
+            return reg.GetBit(address=address, bit=start)
+        return Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+
 
 class LockSetting(ObjectBase):
     def __init__(self, panel, item):
@@ -504,16 +760,35 @@ class LockSetting(ObjectBase):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
-        self.fch = item['fch']
-        self.slot = item['slot']
-        self.check_fch = wx.CheckBox(panel, wx.ID_ANY, self.fch[0], wx.DefaultPosition, wx.DefaultSize, 0)
-        self.check_slot = wx.CheckBox(panel, wx.ID_ANY, self.slot[0], wx.DefaultPosition, wx.DefaultSize, 0)
+        fch_name, self.fch = item['fch']
+        slot_name, self.slot = item['slot']
+        self.check_fch = wx.CheckBox(panel, wx.ID_ANY, fch_name, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_fch.Bind(wx.EVT_CHECKBOX, self.update_fch)
+        self.check_slot = wx.CheckBox(panel, wx.ID_ANY, slot_name, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_slot.Bind(wx.EVT_CHECKBOX, self.update_slot)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.check_fch, 0, wx.ALL, 5)
         self.sizer.Add(self.check_slot, 0, wx.ALL, 5)
 
     def get_sizer(self):
         return self.sizer
+
+    def refresh(self):
+        self.__refresh(self.fch, self.check_fch)
+        self.__refresh(self.slot, self.check_slot)
+
+    def __refresh(self, config, wx_checkbox):
+        address, start, end = config
+        value = reg.GetBit(address=address, bit=start)
+        self.SetCheck(value=value, wx_checkbox=wx_checkbox)
+
+    def update_fch(self, event):
+        address, start, end = self.fch
+        reg.SetBit(address=address, bit=start, is_true=self.check_fch.GetValue())
+
+    def update_slot(self, event):
+        address, start, end = self.slot
+        reg.SetBit(address=address, bit=start, is_true=self.check_slot.GetValue())
 
 
 class ClearSetting(ObjectBase):
@@ -522,8 +797,13 @@ class ClearSetting(ObjectBase):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
         title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.rx = item['rx']
+        self.tx = item['tx']
         self.check_rx = wx.CheckBox(panel, wx.ID_ANY, 'RX', wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_rx.Bind(wx.EVT_CHECKBOX, self.update_rx)
+
         self.check_tx = wx.CheckBox(panel, wx.ID_ANY, 'TX', wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_tx.Bind(wx.EVT_CHECKBOX, self.update_tx)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.check_rx, 0, wx.ALL, 5)
         self.sizer.Add(self.check_tx, 0, wx.ALL, 5)
@@ -531,17 +811,45 @@ class ClearSetting(ObjectBase):
     def get_sizer(self):
         return self.sizer
 
+    def refresh(self):
+        self.__refresh(self.rx, self.check_rx)
+        self.__refresh(self.tx, self.check_tx)
+
+    def __refresh(self, config, wx_checkbox):
+        address, start, end = config
+        value = reg.GetBit(address=address, bit=start)
+        self.SetCheck(value=value, wx_checkbox=wx_checkbox)
+
+    def update_rx(self, event):
+        address, start, end = self.rx
+        reg.SetBit(address=address, bit=start, is_true=self.check_rx.GetValue())
+
+    def update_tx(self, event):
+        address, start, end = self.tx
+        reg.SetBit(address=address, bit=start, is_true=self.check_tx.GetValue())
+
 
 class ResetSetting(ObjectBase):
     def __init__(self, panel, item):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
+        self.config = item['address']
         self.check_reset = wx.CheckBox(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_reset.Bind(wx.EVT_CHECKBOX, self.update)
         self.sizer.Add(self.check_reset, 0, wx.ALL, 5)
 
     def get_sizer(self):
         return self.sizer
+
+    def refresh(self):
+        address, start, end = self.config
+        value = reg.GetBit(address=address, bit=start)
+        self.SetCheck(value=value, wx_checkbox=self.check_reset)
+
+    def update(self, event):
+        address, start, end = self.config
+        reg.SetBit(address=address, bit=start, is_true=self.check_reset.GetValue())
 
 
 if __name__ == '__main__':

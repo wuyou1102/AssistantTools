@@ -5,6 +5,7 @@ from lib.Config import Instrument
 from lib.ProtocolStack import Configuration
 import logging
 from ObjectBase import ObjectBase
+from lib import Utility
 
 logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
@@ -179,7 +180,6 @@ class BandbasePowerSetting(ObjectBase):
     def refresh(self):
         value = reg.GetByte(self.address)
         b = '{0:08b}'.format(ord(value))
-        print b
         b = int(b[2:], 2)
         self.slider.SetValue(b)
         self.static_text.SetLabel(str(-15.5 + 0.25 * (b - 1)))
@@ -206,9 +206,18 @@ class FreqPointSetting(ObjectBase):
         logger.debug("FreqPointSetting:Init")
         logger.debug(item)
         width = 95
+        self.multi_2_4 = 30
+        self.multi_5_8 = 60
+        self.freq_pow = 16777216.0
         title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
-        self.tx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
-        self.rx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1), wx.TE_CENTER)
+        self.tx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1),
+                                 wx.TE_CENTER | wx.TE_PROCESS_ENTER)
+        self.tx_tc.Bind(wx.EVT_TEXT_ENTER, self.update_tx)
+
+        self.rx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1),
+                                 wx.TE_CENTER | wx.TE_PROCESS_ENTER)
+        self.rx_tc.Bind(wx.EVT_TEXT_ENTER, self.update_rx)
+
         self.tx_address = item['tx']
         self.rx_address = item['rx']
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
@@ -226,22 +235,44 @@ class FreqPointSetting(ObjectBase):
     def __refresh(self, address, text_ctrl):
         if not address:
             return
-        value = reg.GetBytes(address=address, reverse=-1)
-        d1d3 = self.__convert_d1d3(value[0:3])
-        d0 = ord(value[3])
-        rf_multi = 60
-        f = (d1d3 / 16777216 + d0) * rf_multi
+        value = reg.Get(address=address, reverse=-1)
+        d3d1 = value[0:6]
+        d0 = value[6:]
+        rf_multi = self.multi_2_4 if d0 in ['50', '51', '52'] else self.multi_5_8
+        d1d3 = Utility.swap_to_d1d3(d3d1)
+        d1d3 = int(d1d3, 16)
+        d0 = int(d0, 16)
+        f = round((d1d3 / self.freq_pow + d0) * rf_multi, 2)
         text_ctrl.SetValue(str(f))
 
-    @staticmethod
-    def __convert_d1d3(lst):
-        value = 0.0
-        for x in lst:
-            value * 256 + ord(x)
-        return value
+    def update_rx(self, event):
+        value = self.GetInput(text_ctrl=self.rx_tc, address=self.rx_address)
+        
+
+    def update_tx(self, event):
+        value = self.GetInput(text_ctrl=self.tx_tc, address=self.tx_address)
 
     def get_sizer(self):
         return self.sizer
+
+    def GetInput(self, text_ctrl, address):
+        try:
+            value = float(text_ctrl.GetValue())
+        except ValueError:
+            self.__refresh(address, text_ctrl)
+            self.AlertError(u"输入不合法，非数字。")
+            return None
+        if 2400 <= value <= 2480 or 5725 <= value <= 5875:
+            return value
+        else:
+            self.__refresh(address, text_ctrl)
+            self.AlertError(u"输入不合法：数值不在范围内。")
+            return None
+
+    def AlertError(self, msg):
+        dialog = wx.MessageDialog(None, msg, u"错误", wx.OK | wx.ICON_ERROR)
+        dialog.ShowModal()
+        dialog.Destroy()
 
 
 class PA_Setting(ObjectBase):
@@ -282,22 +313,22 @@ class PA_Setting(ObjectBase):
         return self.sizer
 
     def disable_useless(self):
-        self.a20_rb.Disable()
-        self.a21_rb.Disable()
-        self.a50_rb.Disable()
-        self.a51_rb.Disable()
         if self.a20:
             self.lst.append((self.a20, self.a20_rb))
-            self.a20_rb.Enable()
+        else:
+            self.a20_rb.Disable()
         if self.a21:
             self.lst.append((self.a21, self.a21_rb))
-            self.a21_rb.Enable()
+        else:
+            self.a21_rb.Disable()
         if self.a50:
             self.lst.append((self.a50, self.a50_rb))
-            self.a50_rb.Enable()
+        else:
+            self.a50_rb.Disable()
         if self.a51:
             self.lst.append((self.a51, self.a51_rb))
-            self.a51_rb.Enable()
+        else:
+            self.a51_rb.Disable()
 
     def refresh(self):
         self.last_address = None
@@ -347,14 +378,14 @@ class RFChannelSetting(ObjectBase):
         return self.sizer
 
     def disable_useless(self):
-        self.tx_rb.Disable()
-        self.rx_rb.Disable()
         if self.tx:
             self.lst.append((self.tx, self.tx_rb))
-            self.tx_rb.Enable()
+        else:
+            self.tx_rb.Disable()
         if self.rx:
             self.lst.append((self.rx, self.rx_rb))
-            self.rx_rb.Enable()
+        else:
+            self.rx_rb.Disable()
 
     def refresh(self):
         self.last_address = None

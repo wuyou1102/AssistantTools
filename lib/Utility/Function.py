@@ -41,6 +41,31 @@ def convert2bin(value, reverse=1):
     return b
 
 
+def replace_bits(byte, start, need_replace):
+    if not need_replace:
+        return byte
+    b = '{0:08b}'.format(ord(byte))
+    end = start + len(need_replace)
+    if end > 8:
+        raise ValueError("%s->%s[%s:%s]" % (b, need_replace, start, end))
+    start, end = 8 - end, 8 - start
+    bits = list(b)
+    need_replace = list(need_replace)
+    for x in range(start, end):
+        bits[x] = need_replace[x - start]
+    b = ''.join(bits)
+    return b
+
+
+def swap_to_d1d3(d3d1):
+    d3d1 = [d3d1[i:i + 2] for i in xrange(0, len(d3d1), 2)]
+    return ''.join(d3d1[::-1])
+
+
 # TODO
 def check_hex_input(string):
     pass
+
+
+if __name__ == '__main__':
+    replace_bits('2', start=3, need_replace='32')

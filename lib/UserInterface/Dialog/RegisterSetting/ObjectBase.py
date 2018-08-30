@@ -25,3 +25,15 @@ class ObjectBase(object):
 
     def get_mpl_title(self):
         return '%s-%s' % (self.__class__.__name__, self.item['title'])
+
+    def SetStringSelection(self, selection, wx_choice):
+        if selection:
+            wx_choice.SetStringSelection(selection)
+        else:
+            wx_choice.SetSelection(wx.NOT_FOUND)
+
+    def SetCheck(self, value, wx_checkbox):
+        if value == '1':
+            wx_checkbox.SetValue(True)
+        else:
+            wx_checkbox.SetValue(False)
