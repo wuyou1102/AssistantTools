@@ -5,4 +5,4 @@ from SerialDrawSNR import SerialDrawSNR
 from RegisterGirdFF import RegisterGrid
 from RegisterSetting import RegisterSetting
 
-DISPLAY_PANEL = [RegisterSetting, SerialDrawSNR, SerialTool, RegisterGrid, OfflineLogParse]
+DISPLAY_PANEL = [RegisterGrid, RegisterSetting, SerialDrawSNR, SerialTool, OfflineLogParse]

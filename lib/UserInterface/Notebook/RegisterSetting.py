@@ -24,7 +24,7 @@ class RegisterSetting(NotebookBase):
         ButtonSizer = wx.BoxSizer(wx.HORIZONTAL)
         button_RF = wx.Button(self, wx.ID_ANY, u"射频设置", wx.DefaultPosition, wx.DefaultSize, 0)
         button_PS = wx.Button(self, wx.ID_ANY, u"基带设置", wx.DefaultPosition, wx.DefaultSize, 0)
-        button_save = wx.Button(self, wx.ID_ANY, u"保存到Excel", wx.DefaultPosition, wx.DefaultSize, 0)
+        # button_save = wx.Button(self, wx.ID_ANY, u"保存到Excel", wx.DefaultPosition, wx.DefaultSize, 0)
         button_refresh = wx.Button(self, wx.ID_ANY, u"刷新", wx.DefaultPosition, wx.DefaultSize, 0)
         button_RF.Bind(wx.EVT_BUTTON, self.on_freq_setting)
         button_PS.Bind(wx.EVT_BUTTON, self.on_protocol_stack_setting)
@@ -32,7 +32,7 @@ class RegisterSetting(NotebookBase):
         ButtonSizer.Add(button_RF, 0, wx.ALL, 5)
 
         ButtonSizer.Add(button_PS, 0, wx.ALL, 5)
-        ButtonSizer.Add(button_save, 0, wx.ALL, 5)
+        # ButtonSizer.Add(button_save, 0, wx.ALL, 5)
         ButtonSizer.Add(button_refresh, 0, wx.ALL, 5)
         InfoSizer = wx.BoxSizer(wx.VERTICAL)
         RSSI_Sizer = self.__init_rssi_sizer()
@@ -55,9 +55,9 @@ class RegisterSetting(NotebookBase):
         self.dialog_freq_setting = None
         self.dialog_prot_stack_setting = None
         self.dialog_mpl = None
-
         self.SetSizer(MainSizer)
         self.Layout()
+        self.Refresh()
 
     def __init_title_sizer(self, title, *items, **kwargs):
         Sizer = wx.BoxSizer(wx.VERTICAL)
@@ -141,6 +141,12 @@ class RegisterSetting(NotebookBase):
             self.dialog_prot_stack_setting.Show()
 
     def on_refresh(self, event):
+        self.Refresh()
+
+    def Refresh(self):
+        if not reg.IsConnect():
+            Utility.AlertError(u"无法获取寄存器，请检查：\n\t1.是否连接寄存器并给寄存器上电。\n\t2.是否打开了其他占用寄存器的应用。\n\t3.驱动是否安装正确。")
+            return False
         for config in RegisterSettingPage:
             for item in config:
                 self.__getattribute__(item['name']).refresh()
@@ -152,6 +158,9 @@ class RegisterSetting(NotebookBase):
                 dialog.Destroy()
 
     def on_add_mpl(self, event):
+        if not reg.IsConnect():
+            Utility.AlertError(u"无法获取寄存器，请检查：\n\t1.是否连接寄存器并给寄存器上电。\n\t2.是否打开了其他占用寄存器的应用。\n\t3.驱动是否安装正确。")
+            return False
         if not self.dialog_mpl:
             rssi = [self.__getattribute__(obj) for obj in rssi_objects]
             snr = [self.__getattribute__(obj) for obj in snr_object]
@@ -189,7 +198,6 @@ class RSSI(Dialog.ObjectBase):
         self.list_a1 = list()
         self.list_a2 = list()
         self.list_a3 = list()
-        self.refresh()
 
     def disable(self):
         self.a0_tc.Disable()
@@ -251,7 +259,6 @@ class SNR(Dialog.ObjectBase):
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.snr_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.lst = list()
-        self.refresh()
 
     def clear(self):
         self.lst = list()
@@ -309,7 +316,6 @@ class BLER(Dialog.ObjectBase):
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.bler_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.lst = list()
-        self.refresh()
 
     def clear(self):
         self.lst = list()

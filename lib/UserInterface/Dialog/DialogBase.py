@@ -32,6 +32,8 @@ class DialogWindow(wx.Frame):
         return self._name
 
 
+
+
 if __name__ == '__main__':
     app = wx.App()
     f = DialogWindow((400, 300))

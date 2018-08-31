@@ -52,6 +52,9 @@ class Panel(wx.Panel):
         self.Layout()
 
     def Refresh(self):
+        if not reg.IsConnect():
+            Utility.AlertError(u"无法获取寄存器，请检查：\n\t1.是否连接寄存器并给寄存器上电。\n\t2.是否打开了其他占用寄存器的应用。\n\t3.驱动是否安装正确。")
+            return False
         for config in RF_configs:
             for item in config:
                 self.__getattribute__(item['name']).refresh()
@@ -60,7 +63,7 @@ class Panel(wx.Panel):
         pass
 
     def on_refresh(self, event):
-        pass
+        self.Refresh()
 
     def __init_button_sizer(self):
         button_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
@@ -247,10 +250,21 @@ class FreqPointSetting(ObjectBase):
 
     def update_rx(self, event):
         value = self.GetInput(text_ctrl=self.rx_tc, address=self.rx_address)
-        
+        self.__update(address=self.rx_address, value=value)
 
     def update_tx(self, event):
         value = self.GetInput(text_ctrl=self.tx_tc, address=self.tx_address)
+        self.__update(address=self.tx_address, value=value)
+
+    def __update(self, address, value):
+        print value
+        rf_multi = self.multi_2_4 if 2400 <= value <= 2480 else self.multi_5_8
+        d1d3 = value / rf_multi
+        d1d3 = int((d1d3 - int(d1d3)) * self.freq_pow)
+        d1d3 = hex(d1d3)[2:]
+        d3d1 = Utility.swap_to_d1d3(d1d3).zfill(6)
+        d0 = hex(int(value / rf_multi))[2:]
+        reg.Set(address=address, data=d3d1 + d0)
 
     def get_sizer(self):
         return self.sizer
@@ -260,19 +274,16 @@ class FreqPointSetting(ObjectBase):
             value = float(text_ctrl.GetValue())
         except ValueError:
             self.__refresh(address, text_ctrl)
-            self.AlertError(u"输入不合法，非数字。")
+            Utility.AlertError(u"输入不合法，非数字。")
             return None
         if 2400 <= value <= 2480 or 5725 <= value <= 5875:
             return value
         else:
             self.__refresh(address, text_ctrl)
-            self.AlertError(u"输入不合法：数值不在范围内。")
+            Utility.AlertError(u"输入不合法：数值不在范围内。")
             return None
 
-    def AlertError(self, msg):
-        dialog = wx.MessageDialog(None, msg, u"错误", wx.OK | wx.ICON_ERROR)
-        dialog.ShowModal()
-        dialog.Destroy()
+
 
 
 class PA_Setting(ObjectBase):

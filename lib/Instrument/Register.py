@@ -197,6 +197,15 @@ class Register(object):
         else:
             return False
 
+    def IsConnect(self):
+        if self.lock.acquire():
+            try:
+                if self.__get(address=0x60680000, reverse=1) is False:
+                    return False
+                return True
+            finally:
+                self.lock.release()
+
 
 if __name__ == '__main__':
     r = Register()

@@ -37,3 +37,5 @@ class ObjectBase(object):
             wx_checkbox.SetValue(True)
         else:
             wx_checkbox.SetValue(False)
+
+

@@ -66,6 +66,9 @@ class Panel(wx.Panel):
         self.Layout()
 
     def Refresh(self):
+        if not reg.IsConnect():
+            Utility.AlertError(u"无法获取寄存器，请检查：\n\t1.是否连接寄存器并给寄存器上电。\n\t2.是否打开了其他占用寄存器的应用。\n\t3.驱动是否安装正确。")
+            return False
         for config in PS_configs:
             if type(config) == list:
                 for item in config:

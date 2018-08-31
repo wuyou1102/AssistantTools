@@ -4,6 +4,7 @@ from lib.Config import Parameter
 from logging import getLogger
 from inspect import isfunction, ismodule, isclass
 import re
+import wx
 
 __Logger = getLogger(__name__)
 __builtin_attr_list = ['__doc__', '__file__', '__name__', '__package__', '__builtins__']
@@ -65,6 +66,12 @@ def swap_to_d1d3(d3d1):
 # TODO
 def check_hex_input(string):
     pass
+
+
+def AlertError(msg):
+    dialog = wx.MessageDialog(None, msg, u"错误", wx.OK | wx.ICON_ERROR)
+    dialog.ShowModal()
+    dialog.Destroy()
 
 
 if __name__ == '__main__':
