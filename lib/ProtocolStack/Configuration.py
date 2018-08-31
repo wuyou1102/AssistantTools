@@ -256,12 +256,12 @@ br_cs_bandwidth_config = {
     'BR': {
         'title': u'BR',
         'recv_address': (0x6068018B, 0, 2),
-        'send_address': (0x6068017B, 0, 2),
+        'send_address': (0x60680017, 0, 2),
     },
     'CS': {
         'title': u'CS',
         'recv_address': (0x6068017B, 0, 2),
-        'send_address': (0x6068017B, 0, 2),
+        'send_address': (0x60680017, 0, 2),
     }
 }
 

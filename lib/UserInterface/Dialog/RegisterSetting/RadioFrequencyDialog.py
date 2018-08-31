@@ -257,7 +257,6 @@ class FreqPointSetting(ObjectBase):
         self.__update(address=self.tx_address, value=value)
 
     def __update(self, address, value):
-        print value
         rf_multi = self.multi_2_4 if 2400 <= value <= 2480 else self.multi_5_8
         d1d3 = value / rf_multi
         d1d3 = int((d1d3 - int(d1d3)) * self.freq_pow)
