@@ -151,39 +151,88 @@ baseband_power_config = [
         'address': 0x60680025,
     },
 ]
-
+# user_interleave_config = [
+#     {
+#         'name': 'user_interleave_send',
+#         'title': u'用户发送',
+#         'total_address': {
+#             'user0': (0x60680004, 0, 2),
+#             'user1': (0x60680008, 0, 2),
+#             'user2': (0x6068000C, 0, 2),
+#             'user3': (0x60680010, 0, 2),
+#         },
+#         'mode_address': {
+#             'user0': (0x60680015, 0, 2),
+#             'user1': (0x60680038, 0, 2),
+#             'user2': (0x60680039, 3, 5),
+#             'user3': (0x60680039, 0, 2),
+#         },
+#     },
+#     {
+#         'name': 'user_interleave_recv',
+#         'title': u'用户接收',
+#         'total_address': {
+#             'user0': (0x60680150, 0, 2),
+#             'user1': (0x60680158, 0, 2),
+#             'user2': (0x60680160, 0, 2),
+#             'user3': (0x60680168, 0, 2),
+#         },
+#         'mode_address': {
+#             'user0': (0x60680151, 3, 5),
+#             'user1': (0x60680159, 3, 5),
+#             'user2': (0x60680161, 3, 5),
+#             'user3': (0x60680169, 3, 5),
+#         },
+#     },
+# ]
 user_interleave_config = [
     {
-        'name': 'user_interleave_send',
-        'title': u'用户发送',
-        'total_address': {
-            'user0': (0x60680004, 0, 2),
-            'user1': (0x60680008, 0, 2),
-            'user2': (0x6068000C, 0, 2),
-            'user3': (0x60680010, 0, 2),
-        },
-        'mode_address': {
-            'user0': (0x60680015, 0, 2),
-            'user1': (0x60680038, 0, 2),
-            'user2': (0x60680039, 3, 5),
-            'user3': (0x60680039, 0, 2),
-        },
+        'name': 'user0_interleave_send',
+        'title': 'User0发送',
+        'total': (0x60680004, 0, 2),
+        'mode': (0x60680015, 0, 2),
     },
     {
-        'name': 'user_interleave_recv',
-        'title': u'用户接收',
-        'total_address': {
-            'user0': (0x60680150, 0, 2),
-            'user1': (0x60680158, 0, 2),
-            'user2': (0x60680160, 0, 2),
-            'user3': (0x60680168, 0, 2),
-        },
-        'mode_address': {
-            'user0': (0x60680151, 3, 5),
-            'user1': (0x60680159, 3, 5),
-            'user2': (0x60680161, 3, 5),
-            'user3': (0x60680169, 3, 5),
-        },
+        'name': 'user1_interleave_send',
+        'title': 'User1发送',
+        'total': (0x60680008, 0, 2),
+        'mode': (0x60680038, 0, 2),
+    },
+    {
+        'name': 'user2_interleave_send',
+        'title': 'User2发送',
+        'total': (0x6068000C, 0, 2),
+        'mode': (0x60680039, 0, 2),
+    },
+    {
+        'name': 'user3_interleave_send',
+        'title': 'User3发送',
+        'total': (0x60680010, 0, 2),
+        'mode': (0x60680039, 0, 2),
+    },
+    {
+        'name': 'user0_interleave_recv',
+        'title': 'User0接收',
+        'total': (0x60680150, 0, 2),
+        'mode': (0x60680151, 3, 5),
+    },
+    {
+        'name': 'user1_interleave_recv',
+        'title': 'User1接收',
+        'total': (0x60680158, 0, 2),
+        'mode': (0x60680159, 3, 5),
+    },
+    {
+        'name': 'user2_interleave_recv',
+        'title': 'User2接收',
+        'total': (0x60680160, 0, 2),
+        'mode': (0x60680161, 3, 5),
+    },
+    {
+        'name': 'user3_interleave_recv',
+        'title': 'User3接收',
+        'total': (0x60680168, 0, 2),
+        'mode': (0x60680169, 3, 5),
     },
 ]
 br_interleave_config = [
@@ -253,16 +302,16 @@ MCS_config = [
 
 br_cs_bandwidth_config = {
     'name': 'br_cs_bandwidth',
+    'CS': {
+        'title': u'CS',
+        'recv_address': (0x6068017B, 0, 2),
+        'send_address': (0x60680017, 0, 2),
+    },
     'BR': {
         'title': u'BR',
         'recv_address': (0x6068018B, 0, 2),
         'send_address': (0x60680017, 0, 2),
     },
-    'CS': {
-        'title': u'CS',
-        'recv_address': (0x6068017B, 0, 2),
-        'send_address': (0x60680017, 0, 2),
-    }
 }
 
 # user_bandwidth_config = {
@@ -398,13 +447,13 @@ clear_config = [
     },
     {
         'name': 'clear_cs',
-        'title': 'CS',
+        'title': ' CS',
         'rx': (0x60680002, 4, -1),
         'tx': (0x60680002, 5, -1),
     },
     {
         'name': 'clear_br',
-        'title': 'BR',
+        'title': ' BR',
         'rx': (0x60680002, 6, -1),
         'tx': (0x60680002, 7, -1),
     },

@@ -507,9 +507,9 @@ class BR_CS_BandwidthSetting(ObjectBase):
         cs_sizer.Add(cs_title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         cs_sizer.Add(self.cs_send_choice, 0, wx.ALL, 5)
         cs_sizer.Add(self.cs_recv_choice, 0, wx.ALL, 5)
-
-        self.sizer.Add(br_sizer, 0, wx.ALL, 0)
         self.sizer.Add(cs_sizer, 0, wx.ALL, 0)
+        self.sizer.Add(br_sizer, 0, wx.ALL, 0)
+
 
     def refresh(self):
         br_rx_address, br_rx_start, br_rx_end = self.br_recv
