@@ -20,7 +20,7 @@ PS_configs = [
 
 
 class ProtocolStackDialog(DialogBase.DialogWindow):
-    def __init__(self, name=u"基带设置", size=(790, 800)):
+    def __init__(self, name=u"基带设置", size=(790, 673)):
         DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
         self.panel.Refresh()
@@ -33,7 +33,7 @@ class Panel(wx.Panel):
         self.font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
         self.title_size = (70, -1)
         MainSizer = wx.BoxSizer(wx.VERTICAL)
-        tmpRowSizer = wx.BoxSizer(wx.HORIZONTAL)
+        FourthRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         SecondRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         ThirdRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         InterleaverSizer = self.__init_interleaver_sizer()
@@ -50,9 +50,9 @@ class Panel(wx.Panel):
         FirstRowSizer.Add(LockSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
         FirstRowSizer.Add(ClearSizer, 0, wx.EXPAND | wx.RIGHT, 5)
 
-        tmpRowSizer.Add(InterleaverSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        FourthRowSizer.Add(InterleaverSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         SecondRowSizer.Add(BandwidthSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        ThirdRowSizer.Add(MCS_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        ThirdRowSizer.Add(MCS_Sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
         LeftMiddleSizer.Add(SecondRowSizer, 0, wx.EXPAND | wx.ALL, 0)
         LeftMiddleSizer.Add(ThirdRowSizer, 0, wx.EXPAND | wx.ALL, 0)
@@ -62,7 +62,7 @@ class Panel(wx.Panel):
 
         MainSizer.Add(FirstRowSizer, 0, wx.EXPAND | wx.ALL, 0)
         MainSizer.Add(MiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
-        MainSizer.Add(tmpRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MainSizer.Add(FourthRowSizer, 0, wx.EXPAND | wx.ALL, 0)
 
         MainSizer.Add(SlotMIMO_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
@@ -130,12 +130,12 @@ class Panel(wx.Panel):
     def __init_MCS_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_interleaver_setting = wx.StaticText(self, wx.ID_ANY, u"调制编码", wx.DefaultPosition, self.title_size, 0)
-        title_interleaver_setting.SetFont(self.font)
+        title = wx.StaticText(self, wx.ID_ANY, u"调制编码", wx.DefaultPosition, self.title_size, 0)
+        title.SetFont(self.font)
         title_modulation = wx.StaticText(self, wx.ID_ANY, u"调制：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_coding = wx.StaticText(self, wx.ID_ANY, u"编码：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_repeat = wx.StaticText(self, wx.ID_ANY, u"重复：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
-        TitleSizer.Add(title_interleaver_setting, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+        TitleSizer.Add(title, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         TitleSizer.Add(title_modulation, 0, wx.ALIGN_CENTER | wx.TOP, 16)
         TitleSizer.Add(title_coding, 0, wx.ALIGN_CENTER | wx.TOP, 16)
         TitleSizer.Add(title_repeat, 0, wx.ALIGN_CENTER | wx.TOP, 16)
@@ -240,7 +240,7 @@ class UserInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['12', '24', '48', '96']
         m = ['12', '24', '48']
-        width = 70
+        width = 59
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -252,8 +252,8 @@ class UserInterleave(ObjectBase):
         self.sizer.Add(self.total_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.mode_choice, 0, wx.ALL, 5)
         self.sizer.Add(self.text_ctrl, 0, wx.ALL, 5)
-        self.total_users = [item['total_address']['user%s' % x] for x in range(4)]
-        self.mode_users = [item['mode_address']['user%s' % x] for x in range(4)]
+        self.total = item['total']
+        self.mode = item['mode']
         self.dict_mapping_t = {
             u'12': '001',
             u'24': '011',
@@ -269,8 +269,8 @@ class UserInterleave(ObjectBase):
         self.dict_m = {v: k for k, v in self.dict_mapping_m.items()}
 
     def refresh(self):
-        t_a, t_s, t_e = self.total_users[0]  # total _ address _start_bit _end_bit
-        m_a, m_s, m_e = self.mode_users[0]  # mode
+        t_a, t_s, t_e = self.total
+        m_a, m_s, m_e = self.mode
         t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
         m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
         self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
@@ -282,20 +282,19 @@ class UserInterleave(ObjectBase):
 
     def update_total(self, event):
         change_value = self.dict_mapping_t[self.total_choice.GetStringSelection()]
-        for user in self.total_users:
-            address, start, end = user
-            byte = reg.GetByte(address=address)
-            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-            reg.SetByte(address=address, byte=int(byte, 2))
+
+        address, start, end = self.total
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
         self.update_tc_value()
 
     def update_mode(self, event):
         change_value = self.dict_mapping_m[self.mode_choice.GetStringSelection()]
-        for user in self.mode_users:
-            address, start, end = user
-            byte = reg.GetByte(address=address)
-            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-            reg.SetByte(address=address, byte=int(byte, 2))
+        address, start, end = self.mode
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
         self.update_tc_value()
 
     def update_tc_value(self):
@@ -307,6 +306,81 @@ class UserInterleave(ObjectBase):
             self.text_ctrl.SetValue('')
 
 
+# class UserInterleave(ObjectBase):
+#     def __init__(self, panel, item):
+#         ObjectBase.__init__(self, item=item)
+#         self.sizer = wx.BoxSizer(wx.VERTICAL)
+#         self.item = item
+#         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+#         t = ['12', '24', '48', '96']
+#         m = ['12', '24', '48']
+#         width = 70
+#         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
+#         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
+#         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
+#         self.mode_choice.Bind(wx.EVT_CHOICE, self.update_mode)
+#         self.text_ctrl = wx.TextCtrl(panel, wx.ID_ANY, "1152", wx.DefaultPosition, (width, -1),
+#                                      wx.TE_LEFT | wx.TE_READONLY)
+#
+#         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+#         self.sizer.Add(self.total_choice, 0, wx.ALL, 5)
+#         self.sizer.Add(self.mode_choice, 0, wx.ALL, 5)
+#         self.sizer.Add(self.text_ctrl, 0, wx.ALL, 5)
+#         self.total_users = [item['total_address']['user%s' % x] for x in range(4)]
+#         self.mode_users = [item['mode_address']['user%s' % x] for x in range(4)]
+#         self.dict_mapping_t = {
+#             u'12': '001',
+#             u'24': '011',
+#             u'48': '100',
+#             u'96': '101',
+#         }
+#         self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
+#         self.dict_mapping_m = {
+#             u'12': '101',
+#             u'24': '110',
+#             u'48': '111',
+#         }
+#         self.dict_m = {v: k for k, v in self.dict_mapping_m.items()}
+#
+#     def refresh(self):
+#         t_a, t_s, t_e = self.total_users[0]  # total _ address _start_bit _end_bit
+#         m_a, m_s, m_e = self.mode_users[0]  # mode
+#         t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
+#         m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
+#         self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
+#         self.SetStringSelection(selection=self.dict_m.get(m_value, None), wx_choice=self.mode_choice)
+#         self.update_tc_value()
+#
+#     def get_sizer(self):
+#         return self.sizer
+#
+#     def update_total(self, event):
+#         change_value = self.dict_mapping_t[self.total_choice.GetStringSelection()]
+#         for user in self.total_users:
+#             address, start, end = user
+#             byte = reg.GetByte(address=address)
+#             byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+#             reg.SetByte(address=address, byte=int(byte, 2))
+#         self.update_tc_value()
+#
+#     def update_mode(self, event):
+#         change_value = self.dict_mapping_m[self.mode_choice.GetStringSelection()]
+#         for user in self.mode_users:
+#             address, start, end = user
+#             byte = reg.GetByte(address=address)
+#             byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+#             reg.SetByte(address=address, byte=int(byte, 2))
+#         self.update_tc_value()
+#
+#     def update_tc_value(self):
+#         total = self.total_choice.GetStringSelection()
+#         mode = self.mode_choice.GetStringSelection()
+#         if total and mode:
+#             self.text_ctrl.SetValue(str(int(total) * int(mode)))
+#         else:
+#             self.text_ctrl.SetValue('')
+
+
 class BrInterleave(ObjectBase):
     def __init__(self, panel, item):
         ObjectBase.__init__(self, item=item)
@@ -315,7 +389,7 @@ class BrInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['6', '12', '24']
         m = []
-        width = 70
+        width = 59
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -509,7 +583,6 @@ class BR_CS_BandwidthSetting(ObjectBase):
         cs_sizer.Add(self.cs_recv_choice, 0, wx.ALL, 5)
         self.sizer.Add(cs_sizer, 0, wx.ALL, 0)
         self.sizer.Add(br_sizer, 0, wx.ALL, 0)
-
 
     def refresh(self):
         br_rx_address, br_rx_start, br_rx_end = self.br_recv
@@ -818,7 +891,7 @@ class LockSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        size=(53,-1)
+        size = (53, -1)
         title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, size, 0)
         fch_name, self.fch = item['fch']
         slot_name, self.slot = item['slot']
