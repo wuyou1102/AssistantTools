@@ -20,7 +20,7 @@ PS_configs = [
 
 
 class ProtocolStackDialog(DialogBase.DialogWindow):
-    def __init__(self, name=u"基带设置", size=(790, 560)):
+    def __init__(self, name=u"基带设置", size=(790, 800)):
         DialogBase.DialogWindow.__init__(self, name=name, size=size)
         self.panel = Panel(self)
         self.panel.Refresh()
@@ -31,8 +31,10 @@ class Panel(wx.Panel):
         wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
                           style=wx.TAB_TRAVERSAL)
         self.font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
+        self.title_size = (70, -1)
         MainSizer = wx.BoxSizer(wx.VERTICAL)
-        FirstRowSizer = wx.BoxSizer(wx.HORIZONTAL)
+        tmpRowSizer = wx.BoxSizer(wx.HORIZONTAL)
+        SecondRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         ThirdRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         InterleaverSizer = self.__init_interleaver_sizer()
         MCS_Sizer = self.__init_MCS_sizer()
@@ -42,24 +44,26 @@ class Panel(wx.Panel):
         ClearSizer = self.__init_clear_sizer()
         ButtonSizer = self.__init_button_sizer()
         ResetSizer = self.__init_reset_sizer()
-        LeftTopSizer = wx.BoxSizer(wx.VERTICAL)
-        LockAndClearSizer = wx.BoxSizer(wx.HORIZONTAL)
-        LockAndClearSizer.Add(ClearSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        LockAndClearSizer.Add(LockSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        LeftMiddleSizer = wx.BoxSizer(wx.VERTICAL)
+        FirstRowSizer = wx.BoxSizer(wx.HORIZONTAL)
+        FirstRowSizer.Add(ResetSizer, 0, wx.EXPAND | wx.LEFT, 5)
+        FirstRowSizer.Add(LockSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
+        FirstRowSizer.Add(ClearSizer, 0, wx.EXPAND | wx.RIGHT, 5)
 
-        FirstRowSizer.Add(InterleaverSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        FirstRowSizer.Add(BandwidthSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        ThirdRowSizer.Add(ResetSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        tmpRowSizer.Add(InterleaverSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        SecondRowSizer.Add(BandwidthSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         ThirdRowSizer.Add(MCS_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
-        LeftTopSizer.Add(FirstRowSizer, 0, wx.EXPAND | wx.ALL, 0)
-        LeftTopSizer.Add(LockAndClearSizer, 0, wx.EXPAND | wx.ALL, 0)
-        TopSizer = wx.BoxSizer(wx.HORIZONTAL)
-        TopSizer.Add(LeftTopSizer, 0, wx.EXPAND | wx.ALL, 0)
-        TopSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.ALL, 0)
+        LeftMiddleSizer.Add(SecondRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+        LeftMiddleSizer.Add(ThirdRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MiddleSizer = wx.BoxSizer(wx.HORIZONTAL)
+        MiddleSizer.Add(LeftMiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MiddleSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.RIGHT, 5)
 
-        MainSizer.Add(TopSizer, 0, wx.EXPAND | wx.ALL, 0)
-        MainSizer.Add(ThirdRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MainSizer.Add(FirstRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MainSizer.Add(MiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MainSizer.Add(tmpRowSizer, 0, wx.EXPAND | wx.ALL, 0)
+
         MainSizer.Add(SlotMIMO_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
         self.SetSizer(MainSizer)
@@ -103,7 +107,7 @@ class Panel(wx.Panel):
     def __init_interleaver_sizer(self):
         InterleaverSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_interleaver_setting = wx.StaticText(self, wx.ID_ANY, u"交织设置", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_interleaver_setting = wx.StaticText(self, wx.ID_ANY, u"交织设置", wx.DefaultPosition, self.title_size, 0)
         title_interleaver_setting.SetFont(self.font)
         title_total = wx.StaticText(self, wx.ID_ANY, u"符号总个数：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_mode = wx.StaticText(self, wx.ID_ANY, u"  交织模式：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
@@ -126,7 +130,7 @@ class Panel(wx.Panel):
     def __init_MCS_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_interleaver_setting = wx.StaticText(self, wx.ID_ANY, u"MCS", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_interleaver_setting = wx.StaticText(self, wx.ID_ANY, u"调制编码", wx.DefaultPosition, self.title_size, 0)
         title_interleaver_setting.SetFont(self.font)
         title_modulation = wx.StaticText(self, wx.ID_ANY, u"调制：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_coding = wx.StaticText(self, wx.ID_ANY, u"编码：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
@@ -145,7 +149,7 @@ class Panel(wx.Panel):
     def __init_bandwidth_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_name = wx.StaticText(self, wx.ID_ANY, u"带宽设置", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_name = wx.StaticText(self, wx.ID_ANY, u"带宽设置", wx.DefaultPosition, self.title_size, 0)
         title_name.SetFont(self.font)
         title_recv = wx.StaticText(self, wx.ID_ANY, u"接收：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         title_send = wx.StaticText(self, wx.ID_ANY, u"发送：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
@@ -156,17 +160,17 @@ class Panel(wx.Panel):
         self.__setattr__(Configuration.br_cs_bandwidth_config['name'],
                          BR_CS_BandwidthSetting(self, Configuration.br_cs_bandwidth_config))
         br_cs_sizer = self.__getattribute__(Configuration.br_cs_bandwidth_config['name']).get_sizer()
-        self.__setattr__(Configuration.user_bandwidth_config['name'],
-                         UserBandwidthSetting(self, Configuration.user_bandwidth_config))
-        user_sizer = self.__getattribute__(Configuration.user_bandwidth_config['name']).get_sizer()
+        for item in Configuration.user_bandwidth_config:
+            self.__setattr__(item['name'], UserBandwidthSetting(self, item))
+            sizer = self.__getattribute__(item['name']).get_sizer()
+            Sizer.Add(sizer, 0, wx.ALL, 0)
         Sizer.Add(br_cs_sizer, 0, wx.ALL, 0)
-        Sizer.Add(user_sizer, 0, wx.ALL, 0)
         return Sizer
 
     def __init_slot_mimo_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_name = wx.StaticText(self, wx.ID_ANY, u"MIMO模式", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_name = wx.StaticText(self, wx.ID_ANY, u"MIMO模式", wx.DefaultPosition, self.title_size, 0)
 
         title_name.SetFont(self.font)
         TitleSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
@@ -224,7 +228,7 @@ class Panel(wx.Panel):
         for item in Configuration.reset_config:
             self.__setattr__(item['name'], ResetSetting(self, item))
             reset_sizer = self.__getattribute__(item['name']).get_sizer()
-            Sizer.Add(reset_sizer, 0, wx.LEFT | wx.TOP, 7)
+            Sizer.Add(reset_sizer, 0, wx.LEFT | wx.TOP, 1)
         return Sizer
 
 
@@ -236,7 +240,7 @@ class UserInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['12', '24', '48', '96']
         m = ['12', '24', '48']
-        width = 60
+        width = 70
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -311,7 +315,7 @@ class BrInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['6', '12', '24']
         m = []
-        width = 60
+        width = 70
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -359,7 +363,7 @@ class ModulationCodingSchemeSetting(ObjectBase):
         repeats = ['T:1 | F:1', 'T:1 | F:2', 'T:1 | F:4', 'T:2 | F:1', 'T:2 | F:2', 'T:2 | F:4', 'T:4 | F:1',
                    'T:4 | F:2']
 
-        width = 70
+        width = 75
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         self.modulation_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), modulations, 0)
         self.modulation_choice.Bind(wx.EVT_CHOICE, self.update_modulation)
@@ -485,7 +489,7 @@ class BR_CS_BandwidthSetting(ObjectBase):
         self.br_recv = self.br['recv_address']
         self.cs_recv = self.cs['recv_address']
         self.send = self.cs['send_address']
-        width = 60
+        width = 75
         br_title_name = wx.StaticText(panel, wx.ID_ANY, self.br["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         cs_title_name = wx.StaticText(panel, wx.ID_ANY, self.cs["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         self.br_recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
@@ -563,10 +567,10 @@ class UserBandwidthSetting(ObjectBase):
             u'20MHz': '100',
             u'40MHz': '101',
         }
-        self.recv_users = [item['recv_address']['user%s' % x] for x in range(4)]
-        self.send_users = [item['send_address']['user%s' % x] for x in range(4)]
+        self.recv_user = item['recv_address']
+        self.send_user = item['send_address']
         self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
-        width = 60
+        width = 75
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         self.recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
         self.recv_choice.Bind(wx.EVT_CHOICE, self.update_recv)
@@ -577,8 +581,8 @@ class UserBandwidthSetting(ObjectBase):
         self.sizer.Add(self.recv_choice, 0, wx.ALL, 5)
 
     def refresh(self):
-        rx_address, rx_start, rx_end = self.recv_users[0]  # total _ address _start_bit _end_bit
-        tx_address, tx_start, tx_end = self.send_users[0]  # mode
+        rx_address, rx_start, rx_end = self.recv_user
+        tx_address, tx_start, tx_end = self.send_user
         rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
         tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
         self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
@@ -589,20 +593,72 @@ class UserBandwidthSetting(ObjectBase):
 
     def update_recv(self, event):
         change_value = self.dict_mapping_bandwidth[self.recv_choice.GetStringSelection()]
-        for user in self.recv_users:
-            address, start, end = user
-            byte = reg.GetByte(address=address)
-            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-            reg.SetByte(address=address, byte=int(byte, 2))
+        address, start, end = self.recv_user
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
 
     def update_send(self, event):
         change_value = self.dict_mapping_bandwidth[self.send_choice.GetStringSelection()]
-        for user in self.send_users:
-            address, start, end = user
-            byte = reg.GetByte(address=address)
-            byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-            reg.SetByte(address=address, byte=int(byte, 2))
+        address, start, end = self.send_user
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
 
+
+# class UserBandwidthSetting(ObjectBase):
+#     def __init__(self, panel, item):
+#         ObjectBase.__init__(self, item=item)
+#         self.sizer = wx.BoxSizer(wx.VERTICAL)
+#         self.item = item
+#         bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+#         self.dict_mapping_bandwidth = {
+#             u'2.5MHz': '001',
+#             u'5MHz': '010',
+#             u'10MHz': '011',
+#             u'20MHz': '100',
+#             u'40MHz': '101',
+#         }
+#         self.recv_users = [item['recv_address']['user%s' % x] for x in range(4)]
+#         self.send_users = [item['send_address']['user%s' % x] for x in range(4)]
+#         self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
+#         width = 60
+#         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+#         self.recv_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+#         self.recv_choice.Bind(wx.EVT_CHOICE, self.update_recv)
+#         self.send_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), bandwidth, 0)
+#         self.send_choice.Bind(wx.EVT_CHOICE, self.update_send)
+#         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+#         self.sizer.Add(self.send_choice, 0, wx.ALL, 5)
+#         self.sizer.Add(self.recv_choice, 0, wx.ALL, 5)
+#
+#     def refresh(self):
+#         rx_address, rx_start, rx_end = self.recv_users[0]  # total _ address _start_bit _end_bit
+#         tx_address, tx_start, tx_end = self.send_users[0]  # mode
+#         rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
+#         tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
+#         self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
+#         self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.send_choice)
+#
+#     def get_sizer(self):
+#         return self.sizer
+#
+#     def update_recv(self, event):
+#         change_value = self.dict_mapping_bandwidth[self.recv_choice.GetStringSelection()]
+#         for user in self.recv_users:
+#             address, start, end = user
+#             byte = reg.GetByte(address=address)
+#             byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+#             reg.SetByte(address=address, byte=int(byte, 2))
+#
+#     def update_send(self, event):
+#         change_value = self.dict_mapping_bandwidth[self.send_choice.GetStringSelection()]
+#         for user in self.send_users:
+#             address, start, end = user
+#             byte = reg.GetByte(address=address)
+#             byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+#             reg.SetByte(address=address, byte=int(byte, 2))
+#
 
 class AntennaModeSetting(ObjectBase):
     def __init__(self, panel, item):
@@ -762,12 +818,13 @@ class LockSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+        size=(53,-1)
+        title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, size, 0)
         fch_name, self.fch = item['fch']
         slot_name, self.slot = item['slot']
-        self.check_fch = wx.CheckBox(panel, wx.ID_ANY, fch_name, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_fch = wx.CheckBox(panel, wx.ID_ANY, fch_name, wx.DefaultPosition, size, 0)
         self.check_fch.Bind(wx.EVT_CHECKBOX, self.update_fch)
-        self.check_slot = wx.CheckBox(panel, wx.ID_ANY, slot_name, wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_slot = wx.CheckBox(panel, wx.ID_ANY, slot_name, wx.DefaultPosition, size, 0)
         self.check_slot.Bind(wx.EVT_CHECKBOX, self.update_slot)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.check_fch, 0, wx.ALL, 5)
@@ -799,13 +856,14 @@ class ClearSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
+        size = (38, -1)
+        title = wx.StaticText(panel, wx.ID_ANY, self.item["title"], wx.DefaultPosition, size, 0)
         self.rx = item['rx']
         self.tx = item['tx']
-        self.check_rx = wx.CheckBox(panel, wx.ID_ANY, 'RX', wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_rx = wx.CheckBox(panel, wx.ID_ANY, 'RX', wx.DefaultPosition, size, 0)
         self.check_rx.Bind(wx.EVT_CHECKBOX, self.update_rx)
 
-        self.check_tx = wx.CheckBox(panel, wx.ID_ANY, 'TX', wx.DefaultPosition, wx.DefaultSize, 0)
+        self.check_tx = wx.CheckBox(panel, wx.ID_ANY, 'TX', wx.DefaultPosition, size, 0)
         self.check_tx.Bind(wx.EVT_CHECKBOX, self.update_tx)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.check_rx, 0, wx.ALL, 5)

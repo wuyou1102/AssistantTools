@@ -265,22 +265,48 @@ br_cs_bandwidth_config = {
     }
 }
 
-user_bandwidth_config = {
-    'name': 'user_bandwidth',
-    'title': u'用户',
-    'recv_address': {
-        'user0': (0x60680153, 0, 2),
-        'user1': (0x6068015B, 0, 2),
-        'user2': (0x60680163, 0, 2),
-        'user3': (0x6068016B, 0, 2),
+# user_bandwidth_config = {
+#     'name': 'user_bandwidth',
+#     'title': u'用户',
+#     'recv_address': {
+#         'user0': (0x60680153, 0, 2),
+#         'user1': (0x6068015B, 0, 2),
+#         'user2': (0x60680163, 0, 2),
+#         'user3': (0x6068016B, 0, 2),
+#     },
+#     'send_address': {
+#         'user0': (0x60680007, 4, 6),
+#         'user1': (0x6068000B, 4, 6),
+#         'user2': (0x6068000F, 4, 6),
+#         'user3': (0x60680013, 4, 6),
+#     },
+# }
+user_bandwidth_config = [
+    {
+        'name': 'user0_bandwidth',
+        'title': u'User0',
+        'recv_address': (0x60680153, 0, 2),
+        'send_address': (0x60680007, 4, 6),
     },
-    'send_address': {
-        'user0': (0x60680007, 4, 6),
-        'user1': (0x6068000B, 4, 6),
-        'user2': (0x6068000F, 4, 6),
-        'user3': (0x60680013, 4, 6),
+    {
+        'name': 'user1_bandwidth',
+        'title': u'User1',
+        'recv_address': (0x6068015B, 0, 2),
+        'send_address': (0x6068000B, 4, 6),
     },
-}
+    {
+        'name': 'user2_bandwidth',
+        'title': u'User2',
+        'recv_address': (0x60680163, 0, 2),
+        'send_address': (0x6068000F, 4, 6),
+    },
+    {
+        'name': 'user3_bandwidth',
+        'title': u'User3',
+        'recv_address': (0x6068016B, 0, 2),
+        'send_address': (0x60680013, 4, 6),
+    },
+]
 antenna_mode_config = {
     'name': 'antenna_mode',
     'send': {
