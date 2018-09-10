@@ -193,28 +193,16 @@ user_interleave_config = [
         'mode': (0x60680015, 0, 2),
     },
     {
-        'name': 'user1_interleave_send',
-        'title': 'User1发送',
-        'total': (0x60680008, 0, 2),
-        'mode': (0x60680038, 0, 2),
-    },
-    {
-        'name': 'user2_interleave_send',
-        'title': 'User2发送',
-        'total': (0x6068000C, 0, 2),
-        'mode': (0x60680039, 0, 2),
-    },
-    {
-        'name': 'user3_interleave_send',
-        'title': 'User3发送',
-        'total': (0x60680010, 0, 2),
-        'mode': (0x60680039, 0, 2),
-    },
-    {
         'name': 'user0_interleave_recv',
         'title': 'User0接收',
         'total': (0x60680150, 0, 2),
         'mode': (0x60680151, 3, 5),
+    },
+    {
+        'name': 'user1_interleave_send',
+        'title': 'User1发送',
+        'total': (0x60680008, 0, 2),
+        'mode': (0x60680038, 0, 2),
     },
     {
         'name': 'user1_interleave_recv',
@@ -223,11 +211,24 @@ user_interleave_config = [
         'mode': (0x60680159, 3, 5),
     },
     {
+        'name': 'user2_interleave_send',
+        'title': 'User2发送',
+        'total': (0x6068000C, 0, 2),
+        'mode': (0x60680039, 0, 2),
+    },
+    {
         'name': 'user2_interleave_recv',
         'title': 'User2接收',
         'total': (0x60680160, 0, 2),
         'mode': (0x60680161, 3, 5),
     },
+    {
+        'name': 'user3_interleave_send',
+        'title': 'User3发送',
+        'total': (0x60680010, 0, 2),
+        'mode': (0x60680039, 0, 2),
+    },
+
     {
         'name': 'user3_interleave_recv',
         'title': 'User3接收',
@@ -238,17 +239,12 @@ user_interleave_config = [
 br_interleave_config = [
     {
         'name': 'br_interleave_send',
-        'title': u'BR/CS发送',
+        'title': u'BR发送',
         'total_address': (0x60680017, 5, 7)
     },
     {
         'name': 'br_interleave_recv',
         'title': u'BR接收',
-        'total_address': (0x60680188, 0, 2)
-    },
-    {
-        'name': 'cs_interleave_recv',
-        'title': u'CS接收',
         'total_address': (0x60680188, 0, 2)
     },
 ]

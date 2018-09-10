@@ -240,12 +240,12 @@ class UserInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['12', '24', '48', '96']
         m = ['12', '24', '48']
-        width = 52
+        width = 57
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
         self.mode_choice.Bind(wx.EVT_CHOICE, self.update_mode)
-        self.text_ctrl = wx.TextCtrl(panel, wx.ID_ANY, "1152", wx.DefaultPosition, (width, -1),
+        self.text_ctrl = wx.TextCtrl(panel, wx.ID_ANY, "", wx.DefaultPosition, (width, -1),
                                      wx.TE_LEFT | wx.TE_READONLY)
 
         self.sizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
@@ -395,7 +395,7 @@ class BrInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['6', '12', '24']
         m = []
-        width = 52
+        width = 57
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
