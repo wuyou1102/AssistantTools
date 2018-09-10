@@ -6,6 +6,7 @@ from lib.ProtocolStack import Configuration
 from ObjectBase import ObjectBase
 from lib import Utility
 import logging
+import binascii
 
 logger = logging.getLogger(__name__)
 reg = Instrument.get_register()
@@ -267,47 +268,84 @@ class UserInterleave(ObjectBase):
             u'48': '111',
         }
         self.dict_m = {v: k for k, v in self.dict_mapping_m.items()}
+        self.cp_len = 1.125
+        self.one_symbol_time = 1024 * 1000 / 11.2
+        self.gap_time = 300 * 1000
+        self.precision = 64 * 5
 
     def refresh(self):
-        t_a, t_s, t_e = self.total
-        m_a, m_s, m_e = self.mode
-        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
-        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
-        self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
-        self.SetStringSelection(selection=self.dict_m.get(m_value, None), wx_choice=self.mode_choice)
+        self.__refresh(address=self.total, wx_choice=self.total_choice, dict_mapping=self.dict_t)
+        self.__refresh(address=self.mode, wx_choice=self.mode_choice, dict_mapping=self.dict_m)
         self.update_tc_value()
+
+    def __refresh(self, address, wx_choice, dict_mapping):
+        address, start, end = address
+        value = Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+        self.SetStringSelection(selection=dict_mapping.get(value, None), wx_choice=wx_choice)
+
+    def __update(self, address, wx_choice, dict_mapping):
+        change_value = dict_mapping[wx_choice.GetStringSelection()]
+        address, start, end = address
+        byte = reg.GetByte(address=address)
+        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
+        reg.SetByte(address=address, byte=int(byte, 2))
 
     def get_sizer(self):
         return self.sizer
 
-    def update_total(self, event):
-        change_value = self.dict_mapping_t[self.total_choice.GetStringSelection()]
+    def __formula(self):
+        symbol_num = self.total_choice.GetStringSelection()
+        if symbol_num:
+            symbol_num = int(symbol_num)
+            time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time + self.gap_time
+            time_reg = int(time_ns / self.precision)
+            b = bin(time_reg)[2:]
+            return b
+        return None
 
-        address, start, end = self.total
-        byte = reg.GetByte(address=address)
-        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-        reg.SetByte(address=address, byte=int(byte, 2))
-        t_a, t_s, t_e = self.total
-        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
-        self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
+    def __update_time(self):
+        name = self.item['name']
+        value = self.__formula()
+        if value:
+            if "send" in name:
+                self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[0, 1])
+
+            else:
+                self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[2, 3])
+                self.__replace_bytes(address=0x606800B4, need_replace=value, pos=[0, 1])
+
+    def __replace_bytes(self, address, need_replace, pos):
+        A1 = int(need_replace[:-8], 2)
+        A0 = int(need_replace[-8:], 2)
+        print A1, A0
+        data = reg.GetBytes(address=address, reverse=1)
+        if data:
+            tmp = list(data)
+            tmp[pos[0]] = chr(A0)
+            tmp[pos[1]] = chr(A1)
+            string = ''
+            for x in tmp[::-1]:
+                string += binascii.b2a_hex(x)
+            print string
+            return reg.Set(address=address, data=string)
+        return False
+
+    def update_total(self, event):
+        self.__update(address=self.total, wx_choice=self.total_choice, dict_mapping=self.dict_mapping_t)
+        self.__refresh(address=self.total, wx_choice=self.total_choice, dict_mapping=self.dict_t)
+        self.__update_time()
         self.update_tc_value()
 
     def update_mode(self, event):
-        change_value = self.dict_mapping_m[self.mode_choice.GetStringSelection()]
-        address, start, end = self.mode
-        byte = reg.GetByte(address=address)
-        byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
-        reg.SetByte(address=address, byte=int(byte, 2))
-        m_a, m_s, m_e = self.mode
-        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
-        self.SetStringSelection(selection=self.dict_m.get(m_value, None), wx_choice=self.mode_choice)
+        self.__update(address=self.mode, wx_choice=self.mode_choice, dict_mapping=self.dict_mapping_m)
+        self.__refresh(address=self.mode, wx_choice=self.mode_choice, dict_mapping=self.dict_m)
         self.update_tc_value()
 
     def update_tc_value(self):
         total = self.total_choice.GetStringSelection()
         mode = self.mode_choice.GetStringSelection()
         if total and mode:
-            self.text_ctrl.SetValue(str(int(total) / int(mode)))
+            self.text_ctrl.SetValue(str(float(total) / int(mode)))
         else:
             self.text_ctrl.SetValue('')
 
@@ -414,6 +452,10 @@ class BrInterleave(ObjectBase):
             '24': '011',
         }
         self.dict_t = {v: k for k, v in self.dict_mapping_t.items()}
+        self.cp_len = 1.125
+        self.one_symbol_time = 1024 * 1000 / 11.2
+        self.gap_time = 300 * 1000
+        self.precision = 32 * 5
 
     def refresh(self):
         total, start, end = self.total  # total _ address _start_bit _end_bit
@@ -430,6 +472,38 @@ class BrInterleave(ObjectBase):
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
         self.refresh()
+        self.__update_time()
+
+    def __formula(self):
+        symbol_num = self.total_choice.GetStringSelection()
+        if symbol_num:
+            symbol_num = int(symbol_num)
+            time_ns = (self.cp_len * symbol_num + 3.5) * self.one_symbol_time + self.gap_time
+            time_reg = int(time_ns / self.precision)
+            b = bin(time_reg)[2:]
+            return b
+        return None
+
+    def __update_time(self):
+        value = self.__formula()
+        if value:
+            self.__replace_bytes(address=0x606800A0, need_replace=value, pos=[0, 1])
+
+    def __replace_bytes(self, address, need_replace, pos):
+        A1 = int(need_replace[:-8], 2)
+        A0 = int(need_replace[-8:], 2)
+        print A1, A0
+        data = reg.GetBytes(address=address, reverse=1)
+        if data:
+            tmp = list(data)
+            tmp[pos[0]] = chr(A0)
+            tmp[pos[1]] = chr(A1)
+            string = ''
+            for x in tmp[::-1]:
+                string += binascii.b2a_hex(x)
+            print string
+            return reg.Set(address=address, data=string)
+        return False
 
 
 class ModulationCodingSchemeSetting(ObjectBase):

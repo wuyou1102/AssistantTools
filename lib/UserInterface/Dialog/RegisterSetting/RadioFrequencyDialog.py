@@ -105,7 +105,7 @@ class Panel(wx.Panel):
     def __init_RF_channel_sizer(self):
         RF_ChannelSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"PA:2G/5G", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u" PA设置 ", wx.DefaultPosition, wx.DefaultSize, 0)
         font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
         title_freq_setting.SetFont(font)
         title_tx = wx.StaticText(self, wx.ID_ANY, u"发送：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
