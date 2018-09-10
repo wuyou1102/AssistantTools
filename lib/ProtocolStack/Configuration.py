@@ -25,15 +25,15 @@ freq_point_config = [
         'rx': 0x606800E4,
     },
     {
-        'name': 'freq_point_cs',
-        'title': 'CS',
-        'tx': 0x606800F8,
-        'rx': None,
-    },
-    {
         'name': 'freq_point_br',
         'title': 'BR',
         'tx': 0x606800D0,
+        'rx': None,
+    },
+    {
+        'name': 'freq_point_cs',
+        'title': 'CS',
+        'tx': 0x606800F8,
         'rx': None,
     },
 ]
@@ -64,16 +64,16 @@ RF_channel_config = [
         'rx': (0x60680168, 7),
     },
     {
-        'name': 'rf_channel_cs',
-        'title': 'CS',
-        'tx': (0x60680178, 6),
-        'rx': (0x60680178, 7),
-    },
-    {
         'name': 'rf_channel_br',
         'title': 'BR',
         'tx': (0x60680188, 6),
         'rx': (0x60680188, 7),
+    },
+    {
+        'name': 'rf_channel_cs',
+        'title': 'CS',
+        'tx': (0x60680178, 6),
+        'rx': (0x60680178, 7),
     },
     {
         'name': 'rf_channel_fs',
@@ -117,20 +117,20 @@ PA_config = [
         'a51': (0x6068016F, 3),
     },
     {
-        'name': 'pa_setting_cs',
-        'title': 'CS',
-        'a20': (0x6068017F, 0),
-        'a21': None,
-        'a50': (0x6068017F, 2),
-        'a51': None
-    },
-    {
         'name': 'pa_setting_br',
         'title': 'BR',
         'a20': (0x6068018F, 0),
-        'a21': None,
+        'a21': (0x6068018F, 1),
         'a50': (0x6068018F, 2),
-        'a51': None,
+        'a51': (0x6068018F, 3),
+    },
+    {
+        'name': 'pa_setting_cs',
+        'title': 'CS',
+        'a20': (0x6068017F, 0),
+        'a21': (0x6068017F, 1),
+        'a50': (0x6068017F, 2),
+        'a51': (0x6068017F, 3),
     },
 ]
 
@@ -238,12 +238,17 @@ user_interleave_config = [
 br_interleave_config = [
     {
         'name': 'br_interleave_send',
-        'title': u'BR发送',
+        'title': u'BR/CS发送',
         'total_address': (0x60680017, 5, 7)
     },
     {
         'name': 'br_interleave_recv',
         'title': u'BR接收',
+        'total_address': (0x60680188, 0, 2)
+    },
+    {
+        'name': 'cs_interleave_recv',
+        'title': u'CS接收',
         'total_address': (0x60680188, 0, 2)
     },
 ]
@@ -278,11 +283,11 @@ MCS_config = [
         'repeat': (0x60680011, 3, 5),
     },
     {
-        'name': 'cs_recv',
-        'title': u'CS接收',
-        'modem': (0x60680178, 3, 5),
-        'encode': (0x6068017A, 4, 7),
-        'repeat': (0x60680179, 0, 2),
+        'name': 'br_send',
+        'title': u'BR/CS发送',
+        'modem': (0x60680017, 4, -1),
+        'encode': (0x60680017, 3, -1),
+        'repeat': (0x60680016, 4, 6),
     },
     {
         'name': 'br_recv',
@@ -292,26 +297,27 @@ MCS_config = [
         'repeat': (0x60680189, 0, 2),
     },
     {
-        'name': 'br_send',
-        'title': u'CS/BR发送',
-        'modem': (0x60680017, 4, -1),
-        'encode': (0x60680017, 3, -1),
-        'repeat': (0x60680016, 4, 6),
+        'name': 'cs_recv',
+        'title': u'CS接收',
+        'modem': (0x60680178, 3, 5),
+        'encode': (0x6068017A, 4, 7),
+        'repeat': (0x60680179, 0, 2),
     },
 ]
 
 br_cs_bandwidth_config = {
     'name': 'br_cs_bandwidth',
-    'CS': {
-        'title': u'CS',
-        'recv_address': (0x6068017B, 0, 2),
-        'send_address': (0x60680017, 0, 2),
-    },
     'BR': {
         'title': u'BR',
         'recv_address': (0x6068018B, 0, 2),
         'send_address': (0x60680017, 0, 2),
     },
+    'CS': {
+        'title': u'CS',
+        'recv_address': (0x6068017B, 0, 2),
+        'send_address': (0x60680017, 0, 2),
+    },
+
 }
 
 # user_bandwidth_config = {
@@ -446,16 +452,16 @@ clear_config = [
         'tx': (0x60680003, 4, -1),
     },
     {
-        'name': 'clear_cs',
-        'title': ' CS',
-        'rx': (0x60680002, 4, -1),
-        'tx': (0x60680002, 5, -1),
-    },
-    {
         'name': 'clear_br',
         'title': ' BR',
         'rx': (0x60680002, 6, -1),
         'tx': (0x60680002, 7, -1),
+    },
+    {
+        'name': 'clear_cs',
+        'title': ' CS',
+        'rx': (0x60680002, 4, -1),
+        'tx': (0x60680002, 5, -1),
     },
 ]
 reset_config = [

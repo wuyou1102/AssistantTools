@@ -84,7 +84,7 @@ class Panel(wx.Panel):
         pass
 
     def on_refresh(self, event):
-        pass
+        self.Refresh()
 
     def __init_button_sizer(self):
         button_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
@@ -188,7 +188,7 @@ class Panel(wx.Panel):
     def __init_lock_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_name = wx.StaticText(self, wx.ID_ANY, u"LOCK", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_name = wx.StaticText(self, wx.ID_ANY, u"UNLOCK", wx.DefaultPosition, wx.DefaultSize, 0)
 
         title_name.SetFont(self.font)
         TitleSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
@@ -240,7 +240,7 @@ class UserInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['12', '24', '48', '96']
         m = ['12', '24', '48']
-        width = 59
+        width = 52
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -287,6 +287,9 @@ class UserInterleave(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        t_a, t_s, t_e = self.total
+        t_value = Utility.convert2bin(reg.GetByte(t_a))[7 - t_e:8 - t_s]
+        self.SetStringSelection(selection=self.dict_t.get(t_value, None), wx_choice=self.total_choice)
         self.update_tc_value()
 
     def update_mode(self, event):
@@ -295,13 +298,16 @@ class UserInterleave(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        m_a, m_s, m_e = self.mode
+        m_value = Utility.convert2bin(reg.GetByte(m_a))[7 - m_e:8 - m_s]
+        self.SetStringSelection(selection=self.dict_m.get(m_value, None), wx_choice=self.mode_choice)
         self.update_tc_value()
 
     def update_tc_value(self):
         total = self.total_choice.GetStringSelection()
         mode = self.mode_choice.GetStringSelection()
         if total and mode:
-            self.text_ctrl.SetValue(str(int(total) * int(mode)))
+            self.text_ctrl.SetValue(str(int(total) / int(mode)))
         else:
             self.text_ctrl.SetValue('')
 
@@ -389,7 +395,7 @@ class BrInterleave(ObjectBase):
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['6', '12', '24']
         m = []
-        width = 59
+        width = 52
         self.total_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), t, 0)
         self.total_choice.Bind(wx.EVT_CHOICE, self.update_total)
         self.mode_choice = wx.Choice(panel, wx.ID_ANY, wx.DefaultPosition, (width, -1), m, 0)
@@ -423,6 +429,7 @@ class BrInterleave(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.refresh()
 
 
 class ModulationCodingSchemeSetting(ObjectBase):
@@ -484,10 +491,10 @@ class ModulationCodingSchemeSetting(ObjectBase):
 
     def refresh(self):
         modem = self.get_part_bits(*self.modem)
-        encode = self.get_part_bits(*self.encode)
-        repeat = self.get_part_bits(*self.repeat)
         self.SetSelection(modem, self.modulation_choice)
+        encode = self.get_part_bits(*self.encode)
         self.SetSelection(encode, self.encoding_choice)
+        repeat = self.get_part_bits(*self.repeat)
         self.SetSelection(repeat, self.repeat_choice)
 
     def get_part_bits(self, address, start, end):
@@ -496,7 +503,6 @@ class ModulationCodingSchemeSetting(ObjectBase):
         return Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
 
     def SetSelection(self, n, wx_choice):
-
         n = int(n, 2)
         c = len(wx_choice.Items)
         if n > c:
@@ -508,20 +514,22 @@ class ModulationCodingSchemeSetting(ObjectBase):
         address, start, end = self.modem
         n = self.modulation_choice.GetSelection()
         self.__update(value=n, start=start, end=end, address=address)
-        # bits = self.convert2bits(value=n, start=start, end=end)
-        # byte = reg.GetByte(address=address)
-        # byte = Utility.replace_bits(byte=byte, start=start, need_replace=bits)
-        # reg.SetByte(address=address, byte=int(byte, 2))
+        modem = self.get_part_bits(*self.modem)
+        self.SetSelection(modem, self.modulation_choice)
 
     def update_encoding(self, event):
         address, start, end = self.encode
         n = self.encoding_choice.GetSelection()
         self.__update(value=n, start=start, end=end, address=address)
+        encode = self.get_part_bits(*self.encode)
+        self.SetSelection(encode, self.encoding_choice)
 
     def update_repeat(self, event):
         address, start, end = self.repeat
         n = self.repeat_choice.GetSelection()
         self.__update(value=n, start=start, end=end, address=address)
+        repeat = self.get_part_bits(*self.repeat)
+        self.SetSelection(repeat, self.repeat_choice)
 
     def __update(self, value, address, start, end):
         bits = self.__convert2bits(value=value, start=start, end=end)
@@ -581,8 +589,8 @@ class BR_CS_BandwidthSetting(ObjectBase):
         cs_sizer.Add(cs_title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         cs_sizer.Add(self.cs_send_choice, 0, wx.ALL, 5)
         cs_sizer.Add(self.cs_recv_choice, 0, wx.ALL, 5)
-        self.sizer.Add(cs_sizer, 0, wx.ALL, 0)
         self.sizer.Add(br_sizer, 0, wx.ALL, 0)
+        self.sizer.Add(cs_sizer, 0, wx.ALL, 0)
 
     def refresh(self):
         br_rx_address, br_rx_start, br_rx_end = self.br_recv
@@ -607,6 +615,7 @@ class BR_CS_BandwidthSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.refresh()
 
     def update_cs_recv(self, event):
         change_value = self.dict_mapping_bandwidth[self.cs_recv_choice.GetStringSelection()]
@@ -614,6 +623,7 @@ class BR_CS_BandwidthSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.refresh()
 
     def update_send(self, event):
         obj = event.GetEventObject()
@@ -625,6 +635,7 @@ class BR_CS_BandwidthSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.refresh()
 
 
 class UserBandwidthSetting(ObjectBase):
@@ -654,12 +665,19 @@ class UserBandwidthSetting(ObjectBase):
         self.sizer.Add(self.recv_choice, 0, wx.ALL, 5)
 
     def refresh(self):
-        rx_address, rx_start, rx_end = self.recv_user
-        tx_address, tx_start, tx_end = self.send_user
-        rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
-        tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
-        self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
-        self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.send_choice)
+        self.__refresh(wx_choice=self.recv_choice, config=self.recv_user)
+        self.__refresh(wx_choice=self.send_choice, config=self.send_user)
+        # rx_address, rx_start, rx_end = self.recv_user
+        # tx_address, tx_start, tx_end = self.send_user
+        # rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
+        # tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
+        # self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
+        # self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.send_choice)
+
+    def __refresh(self, wx_choice, config):
+        address, start, end = config
+        value = Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+        self.SetStringSelection(selection=self.dict_bandwidth.get(value, None), wx_choice=wx_choice)
 
     def get_sizer(self):
         return self.sizer
@@ -670,6 +688,7 @@ class UserBandwidthSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.__refresh(wx_choice=self.recv_choice, config=self.recv_user)
 
     def update_send(self, event):
         change_value = self.dict_mapping_bandwidth[self.send_choice.GetStringSelection()]
@@ -677,6 +696,7 @@ class UserBandwidthSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.__refresh(wx_choice=self.send_choice, config=self.send_user)
 
 
 # class UserBandwidthSetting(ObjectBase):
@@ -789,6 +809,7 @@ class AntennaModeSetting(ObjectBase):
         byte = reg.GetByte(address=address)
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
+        self.refresh()
 
 
 class SlotMimoModeSetting(ObjectBase):
@@ -859,15 +880,19 @@ class SlotMimoModeSetting(ObjectBase):
 
     def update_user0(self, event):
         self.__update(self.user0, self.user0_choice)
+        self.__refresh(self.user0, self.user0_choice)
 
     def update_user1(self, event):
         self.__update(self.user1, self.user1_choice)
+        self.__refresh(self.user1, self.user1_choice)
 
     def update_user2(self, event):
         self.__update(self.user2, self.user2_choice)
+        self.__refresh(self.user2, self.user2_choice)
 
     def update_user3(self, event):
         self.__update(self.user3, self.user3_choice)
+        self.__refresh(self.user3, self.user3_choice)
 
     def __update(self, user, wx_choice):
         change_value = self.dict_mapping_slot[wx_choice.GetStringSelection()]
@@ -918,10 +943,12 @@ class LockSetting(ObjectBase):
     def update_fch(self, event):
         address, start, end = self.fch
         reg.SetBit(address=address, bit=start, is_true=self.check_fch.GetValue())
+        self.__refresh(self.fch, self.check_fch)
 
     def update_slot(self, event):
         address, start, end = self.slot
         reg.SetBit(address=address, bit=start, is_true=self.check_slot.GetValue())
+        self.__refresh(self.slot, self.check_slot)
 
 
 class ClearSetting(ObjectBase):
@@ -957,10 +984,12 @@ class ClearSetting(ObjectBase):
     def update_rx(self, event):
         address, start, end = self.rx
         reg.SetBit(address=address, bit=start, is_true=self.check_rx.GetValue())
+        self.__refresh(self.rx, self.check_rx)
 
     def update_tx(self, event):
         address, start, end = self.tx
         reg.SetBit(address=address, bit=start, is_true=self.check_tx.GetValue())
+        self.__refresh(self.tx, self.check_tx)
 
 
 class ResetSetting(ObjectBase):
@@ -984,6 +1013,7 @@ class ResetSetting(ObjectBase):
     def update(self, event):
         address, start, end = self.config
         reg.SetBit(address=address, bit=start, is_true=self.check_reset.GetValue())
+        self.refresh()
 
 
 if __name__ == '__main__':

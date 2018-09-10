@@ -74,5 +74,11 @@ def AlertError(msg):
     dialog.Destroy()
 
 
+def AlertMsg(msg):
+    dialog = wx.MessageDialog(None, msg, u"消息", wx.OK | wx.ICON_INFORMATION)
+    dialog.ShowModal()
+    dialog.Destroy()
+
+
 if __name__ == '__main__':
     replace_bits('2', start=3, need_replace='32')

@@ -36,8 +36,9 @@ class Panel(wx.Panel):
         MainSizer = wx.BoxSizer(wx.VERTICAL)
         ButtonSizer = self.__init_button_sizer()
         FreqPointSizer = self.__init_freq_point_sizer()
-        RF_ChannelSizer = self.__init_RF_channel_sizer()
         PA_Sizer = self.__init_PA_sizer()
+        RF_ChannelSizer = self.__init_RF_channel_sizer()
+
         Baseband_Sizer = self.__init_baseband_power_sizer()
         TopSizer = wx.BoxSizer(wx.HORIZONTAL)
         TopLeftSizer = wx.BoxSizer(wx.VERTICAL)
@@ -104,7 +105,7 @@ class Panel(wx.Panel):
     def __init_RF_channel_sizer(self):
         RF_ChannelSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"射频通道", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"2G/5G PA", wx.DefaultPosition, wx.DefaultSize, 0)
         font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
         title_freq_setting.SetFont(font)
         title_tx = wx.StaticText(self, wx.ID_ANY, u"发送：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
@@ -122,13 +123,13 @@ class Panel(wx.Panel):
     def __init_PA_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.HORIZONTAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u" PA设置 ", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_freq_setting = wx.StaticText(self, wx.ID_ANY, u"通道设置", wx.DefaultPosition, wx.DefaultSize, 0)
         font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
         title_freq_setting.SetFont(font)
-        title_tx_2_0 = wx.StaticText(self, wx.ID_ANY, u"2G天线0：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
-        title_tx_2_1 = wx.StaticText(self, wx.ID_ANY, u"2G天线1：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
-        title_tx_5_0 = wx.StaticText(self, wx.ID_ANY, u"5G天线0：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
-        title_tx_5_1 = wx.StaticText(self, wx.ID_ANY, u"5G天线1：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
+        title_tx_2_0 = wx.StaticText(self, wx.ID_ANY, u"2G通道0：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
+        title_tx_2_1 = wx.StaticText(self, wx.ID_ANY, u"2G通道1：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
+        title_tx_5_0 = wx.StaticText(self, wx.ID_ANY, u"5G通道0：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
+        title_tx_5_1 = wx.StaticText(self, wx.ID_ANY, u"5G通道1：", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER)
         TitleSizer.Add(title_freq_setting, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         TitleSizer.Add(title_tx_2_0, 0, wx.ALIGN_CENTER | wx.TOP, 25)
         TitleSizer.Add(title_tx_2_1, 0, wx.ALIGN_CENTER | wx.TOP, 30)
@@ -212,7 +213,7 @@ class FreqPointSetting(ObjectBase):
         self.multi_2_4 = 30
         self.multi_5_8 = 60
         self.freq_pow = 16777216.0
-        title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
+        self.title = wx.StaticText(panel, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
         self.tx_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (width, -1),
                                  wx.TE_CENTER | wx.TE_PROCESS_ENTER)
         self.tx_tc.Bind(wx.EVT_TEXT_ENTER, self.update_tx)
@@ -223,7 +224,7 @@ class FreqPointSetting(ObjectBase):
 
         self.tx_address = item['tx']
         self.rx_address = item['rx']
-        self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.sizer.Add(self.title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.tx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.rx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         if not item['tx']:
@@ -250,14 +251,24 @@ class FreqPointSetting(ObjectBase):
 
     def update_rx(self, event):
         value = self.GetInput(text_ctrl=self.rx_tc, address=self.rx_address)
-        self.__update(address=self.rx_address, value=value)
+        if value is None:
+            pass
+        else:
+            self.__update(address=self.rx_address, value=value)
+            self.title.SetFocus()
+            self.__refresh(self.rx_address, self.rx_tc)
 
     def update_tx(self, event):
         value = self.GetInput(text_ctrl=self.tx_tc, address=self.tx_address)
-        self.__update(address=self.tx_address, value=value)
+        if value is None:
+            pass
+        else:
+            self.__update(address=self.tx_address, value=value)
+            self.title.SetFocus()
+            self.__refresh(self.tx_address, self.tx_tc)
 
     def __update(self, address, value):
-        rf_multi = self.multi_2_4 if 2400 <= value <= 2480 else self.multi_5_8
+        rf_multi = self.multi_2_4 if 2250 <= value <= 2500 else self.multi_5_8
         d1d3 = value / rf_multi
         d1d3 = int((d1d3 - int(d1d3)) * self.freq_pow)
         d1d3 = hex(d1d3)[2:]
@@ -275,14 +286,12 @@ class FreqPointSetting(ObjectBase):
             self.__refresh(address, text_ctrl)
             Utility.AlertError(u"输入不合法，非数字。")
             return None
-        if 2400 <= value <= 2480 or 5725 <= value <= 5875:
+        if 2250 <= value <= 2500 or 5000 <= value <= 6000:
             return value
         else:
             self.__refresh(address, text_ctrl)
             Utility.AlertError(u"输入不合法：数值不在范围内。")
             return None
-
-
 
 
 class PA_Setting(ObjectBase):
