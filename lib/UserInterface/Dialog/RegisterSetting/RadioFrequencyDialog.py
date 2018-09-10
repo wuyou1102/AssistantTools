@@ -196,6 +196,7 @@ class BandbasePowerSetting(ObjectBase):
         x = '{0:06b}'.format(x)
         value = int(b + x, 2)
         reg.SetByte(address=self.address, byte=value)
+        self.refresh()
 
     def on_scroll(self, event):
         x = self.slider.GetValue()
@@ -350,25 +351,20 @@ class PA_Setting(ObjectBase):
             self.a51_rb.Disable()
 
     def refresh(self):
-        self.last_address = None
-        self.last_value = None
         for address, radio_box in self.lst:
             self.__refresh(address, radio_box)
 
     def __refresh(self, address, radio_box):
         address, bit = address
-        if self.last_address == address:
-            set_radio_box(self.last_value, bit, radio_box)
-        else:
-            self.last_address = address
-            self.last_value = reg.GetByte(address=address)
-            set_radio_box(self.last_value, bit, radio_box)
+        value = reg.GetBit(address=address, bit=bit)
+        radio_box.SetSelection(int(value))
 
     def update(self, event):
         obj = event.GetEventObject()
         address, bit = self.__getattribute__(obj.GetName())
         is_true = True if obj.GetSelection() == 1 else False
         reg.SetBit(address=address, bit=bit, is_true=is_true)
+        self.__refresh(address=self.__getattribute__(obj.GetName()), radio_box=obj)
 
 
 class RFChannelSetting(ObjectBase):
@@ -407,25 +403,20 @@ class RFChannelSetting(ObjectBase):
             self.rx_rb.Disable()
 
     def refresh(self):
-        self.last_address = None
-        self.last_value = None
         for address, radio_box in self.lst:
             self.__refresh(address, radio_box)
 
     def __refresh(self, address, radio_box):
         address, bit = address
-        if self.last_address == address:
-            set_radio_box(self.last_value, bit, radio_box)
-        else:
-            self.last_address = address
-            self.last_value = reg.GetByte(address=address)
-            set_radio_box(self.last_value, bit, radio_box)
+        value = reg.GetBit(address=address, bit=bit)
+        radio_box.SetSelection(int(value))
 
     def update(self, event):
         obj = event.GetEventObject()
         address, bit = self.__getattribute__(obj.GetName())
         is_true = True if obj.GetSelection() == 1 else False
         reg.SetBit(address=address, bit=bit, is_true=is_true)
+        self.__refresh(address=self.__getattribute__(obj.GetName()), radio_box=obj)
 
 
 if __name__ == '__main__':

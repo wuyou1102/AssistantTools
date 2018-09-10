@@ -280,7 +280,7 @@ MCS_config = [
     },
     {
         'name': 'br_send',
-        'title': u'BR/CS发送',
+        'title': u'BR发送',
         'modem': (0x60680017, 4, -1),
         'encode': (0x60680017, 3, -1),
         'repeat': (0x60680016, 4, 6),
@@ -292,13 +292,13 @@ MCS_config = [
         'encode': (0x6068018A, 4, 7),
         'repeat': (0x60680189, 0, 2),
     },
-    {
-        'name': 'cs_recv',
-        'title': u'CS接收',
-        'modem': (0x60680178, 3, 5),
-        'encode': (0x6068017A, 4, 7),
-        'repeat': (0x60680179, 0, 2),
-    },
+    # {
+    #     'name': 'cs_recv',
+    #     'title': u'CS接收',
+    #     'modem': (0x60680178, 3, 5),
+    #     'encode': (0x6068017A, 4, 7),
+    #     'repeat': (0x60680179, 0, 2),
+    # },
 ]
 
 br_cs_bandwidth_config = {

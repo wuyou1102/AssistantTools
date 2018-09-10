@@ -557,13 +557,13 @@ class BR_CS_BandwidthSetting(ObjectBase):
         br_sizer = wx.BoxSizer(wx.VERTICAL)
         cs_sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz']  # , '40MHz'
         self.dict_mapping_bandwidth = {
             u'2.5MHz': '001',
             u'5MHz': '010',
             u'10MHz': '011',
             u'20MHz': '100',
-            u'40MHz': '101',
+            # u'40MHz': '101',
         }
         self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
         self.br = item['BR']
@@ -643,13 +643,15 @@ class UserBandwidthSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']
+        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz']  # , '40MHz'
+        # TODO
+        # ERROR 增加不匹配的情况
         self.dict_mapping_bandwidth = {
             u'2.5MHz': '001',
             u'5MHz': '010',
             u'10MHz': '011',
             u'20MHz': '100',
-            u'40MHz': '101',
+            # u'40MHz': '101',
         }
         self.recv_user = item['recv_address']
         self.send_user = item['send_address']
