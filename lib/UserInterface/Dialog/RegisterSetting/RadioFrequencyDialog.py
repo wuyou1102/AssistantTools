@@ -229,8 +229,10 @@ class FreqPointSetting(ObjectBase):
         self.sizer.Add(self.tx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.rx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         if not item['tx']:
+            self.tx_tc.SetLabel(u"与接收共用")
             self.tx_tc.Disable()
         if not item['rx']:
+            self.rx_tc.SetValue(u"与发送共用")
             self.rx_tc.Disable()
 
     def refresh(self):
@@ -242,8 +244,8 @@ class FreqPointSetting(ObjectBase):
             return
         value = reg.Get(address=address, reverse=-1)
         d3d1 = value[0:6]
-        d0 = value[6:]
-        rf_multi = self.multi_2_4 if d0 in ['50', '51', '52'] else self.multi_5_8
+        d0 = value[6:].upper()
+        rf_multi = self.multi_2_4 if d0 in ['4B', '4C', '4D', '4E', '4F', '50', '51', '52', '53'] else self.multi_5_8
         d1d3 = Utility.swap_to_d1d3(d3d1)
         d1d3 = int(d1d3, 16)
         d0 = int(d0, 16)
