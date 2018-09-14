@@ -110,7 +110,6 @@ class Panel(wx.Panel):
         button_sizer.Add(title_button, 0, wx.ALIGN_LEFT | wx.TOP, 10)
         button_sizer.Add(RowSizer0, 0, wx.ALL, 0)
         button_sizer.Add(RowSizer1, 0, wx.ALL, 0)
-
         import_button.Disable()
         export_button.Disable()
         return button_sizer
@@ -556,7 +555,6 @@ class ModulationCodingSchemeSetting(ObjectBase):
         self.modem = item['modem']
         self.encode = item['encode']
         self.repeat = item['repeat']
-
 
     def get_sizer(self):
         return self.sizer
