@@ -318,10 +318,8 @@ class PA_Setting(ObjectBase):
         self.a51_rb = wx.RadioBox(panel, -1, '', pos=wx.DefaultPosition, size=(width, -1), choices=[u'关', u'开'],
                                   majorDimension=1, style=wx.RA_SPECIFY_ROWS, name='a51')
 
-        self.a20_rb.Bind(wx.EVT_RADIOBOX, self.update)
-        self.a21_rb.Bind(wx.EVT_RADIOBOX, self.update)
-        self.a50_rb.Bind(wx.EVT_RADIOBOX, self.update)
-        self.a51_rb.Bind(wx.EVT_RADIOBOX, self.update)
+        self.a20_rb.Bind(wx.EVT_RADIOBOX, self.update_ant_2_4)
+        self.a50_rb.Bind(wx.EVT_RADIOBOX, self.update_ant_5_8)
         self.sizer.Add(title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.a20_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
         self.sizer.Add(self.a21_rb, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 2)
@@ -339,7 +337,6 @@ class PA_Setting(ObjectBase):
             self.a20_rb.Disable()
         if self.a21:
             self.lst.append((self.a21, self.a21_rb))
-        else:
             self.a21_rb.Disable()
         if self.a50:
             self.lst.append((self.a50, self.a50_rb))
@@ -347,7 +344,6 @@ class PA_Setting(ObjectBase):
             self.a50_rb.Disable()
         if self.a51:
             self.lst.append((self.a51, self.a51_rb))
-        else:
             self.a51_rb.Disable()
 
     def refresh(self):
@@ -359,12 +355,21 @@ class PA_Setting(ObjectBase):
         value = reg.GetBit(address=address, bit=bit)
         radio_box.SetSelection(int(value))
 
-    def update(self, event):
-        obj = event.GetEventObject()
-        address, bit = self.__getattribute__(obj.GetName())
-        is_true = True if obj.GetSelection() == 1 else False
-        reg.SetBit(address=address, bit=bit, is_true=is_true)
-        self.__refresh(address=self.__getattribute__(obj.GetName()), radio_box=obj)
+    def __update(self, tup_address, radio_box, is_true):
+        if tup_address:
+            address, bit = tup_address
+            reg.SetBit(address=address, bit=bit, is_true=is_true)
+            self.__refresh(address=tup_address, radio_box=radio_box)
+
+    def update_ant_2_4(self, event):
+        is_true = True if self.a20_rb.GetSelection() == 1 else False
+        self.__update(self.a20, self.a20_rb, is_true)
+        self.__update(self.a21, self.a21_rb, is_true)
+
+    def update_ant_5_8(self, event):
+        is_true = True if self.a50_rb.GetSelection() == 1 else False
+        self.__update(self.a50, self.a50_rb, is_true)
+        self.__update(self.a51, self.a51_rb, is_true)
 
 
 class RFChannelSetting(ObjectBase):

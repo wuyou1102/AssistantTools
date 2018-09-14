@@ -518,7 +518,7 @@ class ModulationCodingSchemeSetting(ObjectBase):
         modulations = ['BPSK', 'QPSK', '16QAM', '64QAM', '256QAM'] if name.startswith("user") else ['BPSK', 'QPSK']
         codings = ['1/2', '2/3A', '2/3B', '3/4A', '3/4B', '5/6'] if name.startswith("user") else ['1/2', '2/3']
         repeats = ['T:1 | F:1', 'T:1 | F:2', 'T:1 | F:4', 'T:2 | F:1', 'T:2 | F:2', 'T:2 | F:4', 'T:4 | F:1',
-                   'T:4 | F:2']
+                   'T:4 | F:2'] if name.startswith("user") else ['T:1 | F:1', 'T:1 | F:2', 'T:1 | F:4']
 
         width = 75
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
