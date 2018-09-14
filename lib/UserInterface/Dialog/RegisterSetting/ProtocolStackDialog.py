@@ -247,7 +247,7 @@ class Panel(wx.Panel):
     def __init_agc_sizer(self):
         Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
         TitleSizer = wx.BoxSizer(wx.VERTICAL)
-        title_name = wx.StaticText(self, wx.ID_ANY, u"AGC", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_name = wx.StaticText(self, wx.ID_ANY, u"GAIN", wx.DefaultPosition, wx.DefaultSize, 0)
         title_name.SetFont(self.font)
         TitleSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
         Sizer.Add(TitleSizer, 0, wx.ALL, 0)
@@ -556,32 +556,7 @@ class ModulationCodingSchemeSetting(ObjectBase):
         self.modem = item['modem']
         self.encode = item['encode']
         self.repeat = item['repeat']
-        self.dict_mapping_modulations = {
-            'BPSK': '000',
-            'QPSK': '001',
-            '16QAM': '010',
-            '64QAM': '011',
-            '256QAM': '100'
-        }
-        self.dict_mapping_codings = {
-            '1/2': '000',
-            '2/3': '001',
-            '2/3A': '001',
-            '2/3B': '010',
-            '3/4A': '011',
-            '3/4B': '100',
-            '5/6': '101'
-        }
-        self.dict_mapping_repeats = {
-            'T:1 | F:1': '000',
-            'T:1 | F:2': '001',
-            'T:1 | F:4': '010',
-            'T:2 | F:1': '011',
-            'T:2 | F:2': '100',
-            'T:2 | F:4': '101',
-            'T:4 | F:1': '110',
-            'T:4 | F:2': '111',
-        }
+
 
     def get_sizer(self):
         return self.sizer
@@ -590,6 +565,13 @@ class ModulationCodingSchemeSetting(ObjectBase):
         modem = self.get_part_bits(*self.modem)
         self.SetSelection(modem, self.modulation_choice)
         encode = self.get_part_bits(*self.encode)
+        if self.item['name'] == "br_recv":
+            if encode == '1010':
+                encode = '0'
+            elif encode == '1101':
+                encode = '1'
+            else:
+                print encode
         self.SetSelection(encode, self.encoding_choice)
         repeat = self.get_part_bits(*self.repeat)
         self.SetSelection(repeat, self.repeat_choice)
@@ -617,9 +599,13 @@ class ModulationCodingSchemeSetting(ObjectBase):
     def update_encoding(self, event):
         address, start, end = self.encode
         n = self.encoding_choice.GetSelection()
+        if self.item['name'] == "br_recv":
+            if n == 0:
+                n = 10
+            elif n == 1:
+                n = 13
         self.__update(value=n, start=start, end=end, address=address)
-        encode = self.get_part_bits(*self.encode)
-        self.SetSelection(encode, self.encoding_choice)
+        self.refresh()
 
     def update_repeat(self, event):
         address, start, end = self.repeat
@@ -1023,6 +1009,8 @@ class LockSetting(ObjectBase):
         self.check_fch.Bind(wx.EVT_CHECKBOX, self.update_fch)
         self.check_slot = wx.CheckBox(panel, wx.ID_ANY, slot_name, wx.DefaultPosition, size, 0)
         self.check_slot.Bind(wx.EVT_CHECKBOX, self.update_slot)
+        self.check_slot.Disable()
+        self.check_fch.Disable()
         self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
         self.sizer.Add(self.check_fch, 0, wx.ALL, 5)
         self.sizer.Add(self.check_slot, 0, wx.ALL, 5)

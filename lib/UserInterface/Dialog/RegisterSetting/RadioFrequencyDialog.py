@@ -186,11 +186,11 @@ class BandbasePowerSetting(ObjectBase):
         b = '{0:08b}'.format(ord(value))
         b = int(b[2:], 2)
         self.slider.SetValue(b)
-        self.static_text.SetLabel(str(-15.5 + 0.25 * (b - 1)))
+        self.static_text.SetLabel("%s dB" % str(-15.5 + 0.25 * (b - 1)))
 
     def on_scroll_changed(self, event):
         x = self.slider.GetValue()
-        self.static_text.SetLabel(str(-15.5 + 0.25 * (x - 1)))
+        self.static_text.SetLabel("%s dB" % str(-15.5 + 0.25 * (x - 1)))
         byte = reg.GetByte(address=self.address)
         b = '{0:08b}'.format(ord(byte))[0:2]
         x = '{0:06b}'.format(x)
@@ -200,7 +200,7 @@ class BandbasePowerSetting(ObjectBase):
 
     def on_scroll(self, event):
         x = self.slider.GetValue()
-        self.static_text.SetLabel(str(-15.5 + 0.25 * (x - 1)))
+        self.static_text.SetLabel("%s dB" % str(-15.5 + 0.25 * (x - 1)))
 
 
 class FreqPointSetting(ObjectBase):
@@ -228,12 +228,7 @@ class FreqPointSetting(ObjectBase):
         self.sizer.Add(self.title, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.sizer.Add(self.tx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
         self.sizer.Add(self.rx_tc, 0, wx.ALIGN_CENTER | wx.ALL, 2)
-        if not item['tx']:
-            self.tx_tc.SetLabel(u"与接收共用")
-            self.tx_tc.Disable()
-        if not item['rx']:
-            self.rx_tc.SetValue(u"与发送共用")
-            self.rx_tc.Disable()
+
 
     def refresh(self):
         self.__refresh(self.rx_address, self.rx_tc)
@@ -259,7 +254,7 @@ class FreqPointSetting(ObjectBase):
         else:
             self.__update(address=self.rx_address, value=value)
             self.title.SetFocus()
-            self.__refresh(self.rx_address, self.rx_tc)
+            self.refresh()
 
     def update_tx(self, event):
         value = self.GetInput(text_ctrl=self.tx_tc, address=self.tx_address)
@@ -268,7 +263,7 @@ class FreqPointSetting(ObjectBase):
         else:
             self.__update(address=self.tx_address, value=value)
             self.title.SetFocus()
-            self.__refresh(self.tx_address, self.tx_tc)
+            self.refresh()
 
     def __update(self, address, value):
         rf_multi = self.multi_2_4 if 2250 <= value <= 2500 else self.multi_5_8

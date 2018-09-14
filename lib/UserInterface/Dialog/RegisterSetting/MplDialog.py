@@ -87,11 +87,12 @@ class MplDialog(DialogBase.DialogWindow):
 
 
 class BaseMplPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, line_num=4):
         wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize,
                           style=wx.TAB_TRAVERSAL)
         MainSizer = wx.BoxSizer(wx.VERTICAL)
         MplSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
+        self.line_num = line_num
         # 配置项『
         self.dpi = 100
         self.facecolor = '#FEF9E7'
@@ -114,8 +115,6 @@ class BaseMplPanel(wx.Panel):
     def __init_setting_sizer(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         y_set_sizer = wx.BoxSizer(wx.VERTICAL)
-        line_set_sizer1 = wx.BoxSizer(wx.VERTICAL)
-        line_set_sizer2 = wx.BoxSizer(wx.VERTICAL)
 
         max_sizer = wx.BoxSizer(wx.HORIZONTAL)
         min_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -127,18 +126,7 @@ class BaseMplPanel(wx.Panel):
         title_min = wx.StaticText(self, wx.ID_ANY, u"Y坐标最小值：", wx.DefaultPosition, wx.DefaultSize, 0)
         self.max_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
         self.min_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line0_cb = wx.CheckBox(self, wx.ID_ANY, u"Line0", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line1_cb = wx.CheckBox(self, wx.ID_ANY, u"Line1", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line2_cb = wx.CheckBox(self, wx.ID_ANY, u"Line2", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line3_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line0_cb.SetValue(True)
-        self.line1_cb.SetValue(True)
-        self.line2_cb.SetValue(True)
-        self.line3_cb.SetValue(True)
-        line_set_sizer1.Add(self.line0_cb, 0, wx.ALL, 0)
-        line_set_sizer1.Add(self.line2_cb, 0, wx.ALL, 0)
-        line_set_sizer2.Add(self.line1_cb, 0, wx.ALL, 0)
-        line_set_sizer2.Add(self.line3_cb, 0, wx.ALL, 0)
+        line_check_sizer = self.__init_line_check_sizer(self.line_num)
         max_sizer.Add(title_max, 0, wx.ALL, 0)
         max_sizer.Add(self.max_tc, 0, wx.ALL, 0)
         min_sizer.Add(title_min, 0, wx.ALL, 0)
@@ -147,9 +135,36 @@ class BaseMplPanel(wx.Panel):
         y_set_sizer.Add(min_sizer, 0, wx.ALL, 0)
         sizer.Add(y_set_sizer, 0, wx.ALL, 0)
         sizer.Add(ok_button, 0, wx.EXPAND | wx.LEFT, 5)
+        sizer.Add(line_check_sizer, 0, wx.EXPAND | wx.LEFT, 5)
+        sizer.Add(save_button, 0, wx.EXPAND | wx.LEFT, 5)
+        return sizer
+
+    def __init_line_check_sizer(self, line_num):
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.line0_cb = wx.CheckBox(self, wx.ID_ANY, u"Line0", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.line1_cb = wx.CheckBox(self, wx.ID_ANY, u"Line1", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.line2_cb = wx.CheckBox(self, wx.ID_ANY, u"Line2", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.line3_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
+        self.line0_cb.SetValue(True)
+        self.line1_cb.SetValue(True)
+        self.line2_cb.SetValue(True)
+        self.line3_cb.SetValue(True)
+        line_set_sizer1 = wx.BoxSizer(wx.VERTICAL)
+        line_set_sizer2 = wx.BoxSizer(wx.VERTICAL)
+        line_set_sizer1.Add(self.line0_cb, 0, wx.ALL, 0)
+        line_set_sizer1.Add(self.line2_cb, 0, wx.ALL, 0)
+        line_set_sizer2.Add(self.line1_cb, 0, wx.ALL, 0)
+        line_set_sizer2.Add(self.line3_cb, 0, wx.ALL, 0)
         sizer.Add(line_set_sizer1, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
         sizer.Add(line_set_sizer2, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
-        sizer.Add(save_button, 0, wx.EXPAND | wx.LEFT, 5)
+        if line_num == 5:
+            self.line4_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
+            self.line4_cb.SetValue(True)
+            line_set_sizer3 = wx.BoxSizer(wx.VERTICAL)
+            line_set_sizer3.Add(self.line4_cb, 0, wx.ALL, 0)
+            sizer.Add(line_set_sizer3, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
+        else:
+            self.line4_cb = None
         return sizer
 
     def on_ok(self, event):
@@ -214,6 +229,8 @@ class BaseMplPanel(wx.Panel):
         self.line1_cb.SetLabel(args[1])
         self.line2_cb.SetLabel(args[2])
         self.line3_cb.SetLabel(args[3])
+        if self.line4_cb and args[4]:
+            self.line4_cb.SetLabel(args[4])
 
 
 class RSSIPanel(BaseMplPanel):
@@ -324,30 +341,27 @@ class SNRPanel(BaseMplPanel):
 
 class BLERPanel(BaseMplPanel):
     def __init__(self, parent, objs):
-        BaseMplPanel.__init__(self, parent)
-        self.set_checkbox_label(u"User 0", u"User 1", u"User 2", u"User 3")
+        BaseMplPanel.__init__(self, parent, line_num=5)
+        self.set_checkbox_label(u"User 0", u"User 1", u"User 2", u"User 3", u"BR")
         self.user0 = self.get_object(objs, 'user0')
         self.user1 = self.get_object(objs, 'user1')
         self.user2 = self.get_object(objs, 'user2')
         self.user3 = self.get_object(objs, 'user3')
+        self.br = self.get_object(objs, 'br')
         self.user0.clear()
         self.user1.clear()
         self.user2.clear()
         self.user3.clear()
+        self.br.clear()
         self.title = "BLER"
         self.__init_plot()
         self.init_axes(0, 100)
 
     def get_object(self, objs, name):
         for obj in objs:
-            print obj.get_name()
             if name in obj.get_name():
                 return obj
         return None
-
-    def refresh(self, event):
-        for obj in self.objs:
-            print obj.get_name()
 
     def refresh(self, event):
         if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
@@ -358,6 +372,7 @@ class BLERPanel(BaseMplPanel):
         a1 = self.user1.next()
         a2 = self.user2.next()
         a3 = self.user3.next()
+        br = self.br.next()
         x_max = len(a0) if len(a0) > 80 else 80
         x_min = x_max - 80
         self.Axes.set_xbound(lower=x_min, upper=x_max)
@@ -373,6 +388,9 @@ class BLERPanel(BaseMplPanel):
         if self.line3_cb.IsChecked():
             self._line3.set_xdata(numpy.arange(len(a3)))
             self._line3.set_ydata(numpy.array(a3))
+        if self.line4_cb.IsChecked():
+            self._line4.set_xdata(numpy.arange(len(br)))
+            self._line4.set_ydata(numpy.array(br))
         self.update()
 
     def __init_plot(self, linestyle='--'):
@@ -385,4 +403,10 @@ class BLERPanel(BaseMplPanel):
                                       label=u'User 2', linestyle=linestyle)
         self._line3, = self.Axes.plot(numpy.array([]), numpy.array([]), color="#27AE60", linewidth=linewidth,
                                       label=u'User 3', linestyle=linestyle)
+        self._line4, = self.Axes.plot(numpy.array([]), numpy.array([]), color="#A569BD", linewidth=linewidth,
+                                      label=u'BR', linestyle=linestyle)
         self.Axes.legend()
+
+    def __init_line_check_szer(self):
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        return sizer

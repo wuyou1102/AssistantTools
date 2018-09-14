@@ -28,13 +28,13 @@ freq_point_config = [
         'name': 'freq_point_br',
         'title': 'BR',
         'tx': 0x606800D0,
-        'rx': None,
+        'rx': 0x606800D0,
     },
     {
         'name': 'freq_point_cs',
         'title': 'CS',
         'tx': 0x606800F8,
-        'rx': None,
+        'rx': 0x606800F8,
     },
 ]
 
@@ -214,7 +214,7 @@ user_interleave_config = [
         'name': 'user2_interleave_send',
         'title': 'User2发送',
         'total': (0x6068000C, 0, 2),
-        'mode': (0x60680039, 0, 2),
+        'mode': (0x60680039, 3, 5),
     },
     {
         'name': 'user2_interleave_recv',
@@ -280,14 +280,14 @@ MCS_config = [
     },
     {
         'name': 'br_send',
-        'title': u'BR发送',
+        'title': u'AP-BR发送',
         'modem': (0x60680017, 4, -1),
         'encode': (0x60680017, 3, -1),
         'repeat': (0x60680016, 4, 6),
     },
     {
         'name': 'br_recv',
-        'title': u'BR接收',
+        'title': u'ND-BR接收',
         'modem': (0x60680188, 3, 5),
         'encode': (0x6068018A, 4, 7),
         'repeat': (0x60680189, 0, 2),
@@ -394,32 +394,32 @@ lock_config = [
     {
         'name': 'usr0_lock',
         'title': 'User0',
-        'fch': ('FCH', (0x606800B3, 7, -1)),
-        'slot': ('SLOT', (0x606800B3, 6, -1)),
+        'fch': ('FCH', (0x606804B3, 7, -1)),
+        'slot': ('SLOT', (0x606804B3, 6, -1)),
     },
     {
         'name': 'usr1_lock',
         'title': 'User1',
-        'fch': ('FCH', (0x606800B3, 5, -1)),
-        'slot': ('SLOT', (0x606800B3, 4, -1)),
+        'fch': ('FCH', (0x606804B3, 5, -1)),
+        'slot': ('SLOT', (0x606804B3, 4, -1)),
     },
     {
         'name': 'usr2_lock',
         'title': 'User2',
-        'fch': ('FCH', (0x606800B3, 3, -1)),
-        'slot': ('SLOT', (0x606800B3, 2, -1)),
+        'fch': ('FCH', (0x606804B3, 3, -1)),
+        'slot': ('SLOT', (0x606804B3, 2, -1)),
     },
     {
         'name': 'usr3_lock',
         'title': 'User3',
-        'fch': ('FCH', (0x606800B3, 1, -1)),
-        'slot': ('SLOT', (0x606800B3, 0, -1)),
+        'fch': ('FCH', (0x606804B3, 1, -1)),
+        'slot': ('SLOT', (0x606804B3, 0, -1)),
     },
     {
         'name': 'br_csma_lock',
         'title': 'BR/CSMA',
-        'fch': ('BR', (0x606800B2, 7, -1)),
-        'slot': ('CSMA', (0x606800B2, 6, -1)),
+        'fch': ('BR', (0x606804B2, 7, -1)),
+        'slot': ('CSMA', (0x606804B2, 6, -1)),
     },
 ]
 clear_config = [
@@ -543,7 +543,7 @@ snr_config = [
     },
 
 ]
-bler_config = [
+bler_user_config = [
     {
         'title': 'User0',
         'name': 'bler_user0',
@@ -568,8 +568,18 @@ bler_config = [
         'total': (0x606804DA, 0x606804DB),
         'error': (0x606804D8, 0x606804D9),
     },
-
 ]
+bler_br_config = {
+    'title': 'BR',
+    'name': 'bler_br',
+    'fft': (0x6068018B, 0, 2),
+    'symbols': (0x60680017, 5, 7),
+    'repeat': (0x60680016, 4, 6),
+    'qam_bits': (0x60680017, 4, -1),
+    'packet': (0x60680316, 5, 7),
+    'error': (0x606804DC, -1, -1),
+}
+
 # 添加 AGC相关三个选项：
 # CS AGC gain 0x17c[7:0]
 # FS AGC gain 0x184[7:0]
