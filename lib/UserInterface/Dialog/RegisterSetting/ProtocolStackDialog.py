@@ -14,7 +14,7 @@ PS_configs = [
     Configuration.user_interleave_config, Configuration.br_interleave_config,
     Configuration.user_bandwidth_config, Configuration.br_cs_bandwidth_config,
     Configuration.clear_config, Configuration.lock_config,
-    Configuration.reset_config, Configuration.MCS_config,
+    Configuration.reset_config, Configuration.MCS_config, Configuration.agc_config,
     Configuration.antenna_mode_config,
     Configuration.slot_mimo_mode_config,
 ]
@@ -45,6 +45,7 @@ class Panel(wx.Panel):
         ClearSizer = self.__init_clear_sizer()
         ButtonSizer = self.__init_button_sizer()
         ResetSizer = self.__init_reset_sizer()
+        AGC_Sizer = self.__init_agc_sizer()
         LeftMiddleSizer = wx.BoxSizer(wx.VERTICAL)
         FirstRowSizer = wx.BoxSizer(wx.HORIZONTAL)
         FirstRowSizer.Add(ResetSizer, 0, wx.EXPAND | wx.LEFT, 5)
@@ -53,16 +54,17 @@ class Panel(wx.Panel):
 
         FourthRowSizer.Add(InterleaverSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         SecondRowSizer.Add(BandwidthSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        SecondRowSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 0)
         ThirdRowSizer.Add(MCS_Sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-
+        ThirdRowSizer.Add(AGC_Sizer, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 0)
         LeftMiddleSizer.Add(SecondRowSizer, 0, wx.EXPAND | wx.ALL, 0)
         LeftMiddleSizer.Add(ThirdRowSizer, 0, wx.EXPAND | wx.ALL, 0)
-        MiddleSizer = wx.BoxSizer(wx.HORIZONTAL)
-        MiddleSizer.Add(LeftMiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
-        MiddleSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.RIGHT, 5)
+        # MiddleSizer = wx.BoxSizer(wx.HORIZONTAL)
+        # MiddleSizer.Add(LeftMiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
+        # MiddleSizer.Add(ButtonSizer, 1, wx.EXPAND | wx.RIGHT, 5)
 
         MainSizer.Add(FirstRowSizer, 0, wx.EXPAND | wx.ALL, 0)
-        MainSizer.Add(MiddleSizer, 0, wx.EXPAND | wx.ALL, 0)
+        MainSizer.Add(LeftMiddleSizer, 0, wx.EXPAND | wx.ALL, 5)
         MainSizer.Add(FourthRowSizer, 0, wx.EXPAND | wx.ALL, 0)
 
         MainSizer.Add(SlotMIMO_Sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
@@ -89,6 +91,8 @@ class Panel(wx.Panel):
 
     def __init_button_sizer(self):
         button_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
+        title_button = wx.StaticText(self, wx.ID_ANY, u"", wx.DefaultPosition, self.title_size, 0)
+        title_button.SetFont(self.font)
         refresh_button = wx.Button(self, wx.ID_ANY, u"刷新", wx.DefaultPosition, wx.DefaultSize, 0)
         import_button = wx.Button(self, wx.ID_ANY, u"导入", wx.DefaultPosition, wx.DefaultSize, 0)
         export_button = wx.Button(self, wx.ID_ANY, u"导出", wx.DefaultPosition, wx.DefaultSize, 0)
@@ -97,10 +101,16 @@ class Panel(wx.Panel):
         import_button.Bind(wx.EVT_BUTTON, self.on_refresh)
         export_button.Bind(wx.EVT_BUTTON, self.on_refresh)
         close_button.Bind(wx.EVT_BUTTON, self.on_refresh)
-        button_sizer.Add(refresh_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
-        button_sizer.Add(import_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
-        button_sizer.Add(export_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
-        button_sizer.Add(close_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        RowSizer0 = wx.BoxSizer(wx.HORIZONTAL)
+        RowSizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        RowSizer0.Add(refresh_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        RowSizer0.Add(import_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        RowSizer1.Add(close_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        RowSizer1.Add(export_button, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 5)
+        button_sizer.Add(title_button, 0, wx.ALIGN_LEFT | wx.TOP, 10)
+        button_sizer.Add(RowSizer0, 0, wx.ALL, 0)
+        button_sizer.Add(RowSizer1, 0, wx.ALL, 0)
+
         import_button.Disable()
         export_button.Disable()
         return button_sizer
@@ -234,6 +244,19 @@ class Panel(wx.Panel):
             Sizer.Add(reset_sizer, 0, wx.LEFT | wx.TOP, 1)
         return Sizer
 
+    def __init_agc_sizer(self):
+        Sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u""), wx.VERTICAL)
+        TitleSizer = wx.BoxSizer(wx.VERTICAL)
+        title_name = wx.StaticText(self, wx.ID_ANY, u"AGC", wx.DefaultPosition, wx.DefaultSize, 0)
+        title_name.SetFont(self.font)
+        TitleSizer.Add(title_name, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+        Sizer.Add(TitleSizer, 0, wx.ALL, 0)
+        for item in Configuration.agc_config:
+            self.__setattr__(item['name'], AGC_Setting(self, item))
+            agc_sizer = self.__getattribute__(item['name']).get_sizer()
+            Sizer.Add(agc_sizer, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.TOP, 7)
+        return Sizer
+
 
 class UserInterleave(ObjectBase):
     def __init__(self, panel, item):
@@ -319,7 +342,6 @@ class UserInterleave(ObjectBase):
     def __replace_bytes(self, address, need_replace, pos):
         A1 = int(need_replace[:-8], 2)
         A0 = int(need_replace[-8:], 2)
-        print A1, A0
         data = reg.GetBytes(address=address, reverse=1)
         if data:
             tmp = list(data)
@@ -328,7 +350,7 @@ class UserInterleave(ObjectBase):
             string = ''
             for x in tmp[::-1]:
                 string += binascii.b2a_hex(x)
-            print string
+
             return reg.Set(address=address, data=string)
         return False
 
@@ -494,7 +516,7 @@ class BrInterleave(ObjectBase):
     def __replace_bytes(self, address, need_replace, pos):
         A1 = int(need_replace[:-8], 2)
         A0 = int(need_replace[-8:], 2)
-        print A1, A0
+
         data = reg.GetBytes(address=address, reverse=1)
         if data:
             tmp = list(data)
@@ -503,7 +525,6 @@ class BrInterleave(ObjectBase):
             string = ''
             for x in tmp[::-1]:
                 string += binascii.b2a_hex(x)
-            print string
             return reg.Set(address=address, data=string)
         return False
 
@@ -1092,6 +1113,38 @@ class ResetSetting(ObjectBase):
         address, start, end = self.config
         reg.SetBit(address=address, bit=start, is_true=self.check_reset.GetValue())
         self.refresh()
+
+
+class AGC_Setting(ObjectBase):
+    def __init__(self, panel, item):
+        ObjectBase.__init__(self, item=item)
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.item = item
+        height = 24
+        title = wx.StaticText(panel, wx.ID_ANY, u"%s：" % item['title'], wx.DefaultPosition, (30, height),
+                              wx.ALIGN_CENTER)
+        self.address = item['address']
+        self.value_tc = wx.TextCtrl(panel, wx.ID_ANY, '', wx.DefaultPosition, (50, height),
+                                    wx.TE_CENTER | wx.TE_PROCESS_ENTER)
+        self.value_tc.Bind(wx.EVT_TEXT_ENTER, self.update)
+        self.sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 5)
+        self.sizer.Add(self.value_tc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL | wx.ALL, 2)
+
+    def refresh(self):
+        value = reg.GetByte(self.address)
+        value = ord(value)
+        self.value_tc.SetValue(hex(value))
+
+    def update(self, event):
+        try:
+            value = int(self.value_tc.GetValue(), 16)
+            reg.SetByte(self.address, value)
+
+
+        except ValueError:
+            Utility.AlertError(u"输入不合法:%s" % self.value_tc.GetValue())
+        finally:
+            self.refresh()
 
 
 if __name__ == '__main__':

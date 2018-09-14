@@ -570,3 +570,24 @@ bler_config = [
     },
 
 ]
+# 添加 AGC相关三个选项：
+# CS AGC gain 0x17c[7:0]
+# FS AGC gain 0x184[7:0]
+# BR AGC gain 0x18c[7:0]
+agc_config = [
+    {
+        'title': 'CS',
+        'name': 'agc_cs',
+        'address': 0x6068017C,
+    },
+    {
+        'title': 'FS',
+        'name': 'agc_fs',
+        'address': 0x60680184,
+    },
+    {
+        'title': 'BR',
+        'name': 'agc_br',
+        'address': 0x6068018C,
+    },
+]
