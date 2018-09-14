@@ -122,10 +122,12 @@ class Panel(wx.Panel):
             self.__setattr__(item['name'], UserInterleave(self, item))
             sizer = self.__getattribute__(item['name']).get_sizer()
             InterleaverSizer.Add(sizer, 0, wx.ALL, 0)
+
         for item in Configuration.br_interleave_config:
             self.__setattr__(item['name'], BrInterleave(self, item))
             sizer = self.__getattribute__(item['name']).get_sizer()
-            InterleaverSizer.Add(sizer, 0, wx.ALL, 0)
+            InterleaverSizer.Add(sizer, 0, wx.LEFT, 5)
+
         return InterleaverSizer
 
     def __init_MCS_sizer(self):

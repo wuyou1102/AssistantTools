@@ -239,12 +239,12 @@ user_interleave_config = [
 br_interleave_config = [
     {
         'name': 'br_interleave_send',
-        'title': u'BR发送',
+        'title': u'AP-BR发送',
         'total_address': (0x60680017, 5, 7)
     },
     {
         'name': 'br_interleave_recv',
-        'title': u'BR接收',
+        'title': u'ND-BR接收',
         'total_address': (0x60680188, 0, 2)
     },
 ]
