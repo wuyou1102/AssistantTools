@@ -442,7 +442,7 @@ class BLER_BR(Dialog.ObjectBase):
         try:
             return error / ldpc_num / br_packet
         except ZeroDivisionError:
-            return 0
+            return 100
 
     def __calc_br_packet(self):
         packet = self.get_part_bits(*self.item['packet'])
