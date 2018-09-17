@@ -439,7 +439,10 @@ class BLER_BR(Dialog.ObjectBase):
         ldpc_num = self.__calc_ldpc_num()
         br_packet = self.__calc_br_packet()
         error = ord(reg.GetByte(self.item['error'][0]))
-        return error / ldpc_num / br_packet
+        try:
+            return error / ldpc_num / br_packet
+        except ZeroDivisionError:
+            return 0
 
     def __calc_br_packet(self):
         packet = self.get_part_bits(*self.item['packet'])
@@ -451,10 +454,18 @@ class BLER_BR(Dialog.ObjectBase):
         return ldpc_num
 
     def __get_fft(self):
-        return self.FFT[self.get_part_bits(*self.item['fft'])]
+        try:
+            return self.FFT[self.get_part_bits(*self.item['fft'])]
+        except KeyError:
+            logger.error("FFT Value is illegal.")
+            return 0
 
     def __get_symbols(self):
-        return self.Symbols[self.get_part_bits(*self.item['symbols'])]
+        try:
+            return self.Symbols[self.get_part_bits(*self.item['symbols'])]
+        except KeyError:
+            logger.error("Symbols Value is illegal.")
+            return 0
 
     def __get_repeat(self):
         return self.Repeat[self.get_part_bits(*self.item['repeat'])]
