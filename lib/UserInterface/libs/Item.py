@@ -83,8 +83,11 @@ class NprMessage(Message):
             self._prot = Utility.find_in_string(pattern=NPR_begin_pattern, string=fl)
         if self._prot and self._prot != 'MSG_TIMEOUT':
             tmp = self._prot.split('_')
-            self._src = tmp[0]
-            self._dest = tmp[1]
+            try:
+                self._src = tmp[0]
+                self._dest = tmp[1]
+            except IndexError:
+                self._dest = "ERROR"
 
 
 class e2eMessage(Message):

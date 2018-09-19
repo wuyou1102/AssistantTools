@@ -3,8 +3,11 @@ import serial
 import logging
 import serial.tools.list_ports
 import threading
+import re
+from lib.Utility import find_in_string
 
 Logger = logging.getLogger(__name__)
+port_pattern = re.compile(r'(COM\d+)')
 
 
 def get_ports():
@@ -26,8 +29,16 @@ class Serial(object):
         self.lock = threading.Lock()
         baudrate = baudrate if baudrate in [110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200,
                                             230400, 380400, 460800, 921600] else 115200
-        self.port = port
-        self.__session = serial.Serial(port=port, baudrate=baudrate, bytesize=8, parity='N', stopbits=1, timeout=2)
+        self.port = self.__convert_port(port=port)
+        self.__session = serial.Serial(port=self.port, baudrate=baudrate, bytesize=8, parity='N', stopbits=1, timeout=2)
+
+    def __convert_port(self, port):
+        if type(port) == int:
+            return "COM%s" % port
+        else:
+            if port.startswith("COM"):
+                return port
+            return find_in_string(pattern=port_pattern, string=port)
 
     def get_port(self):
         return self.port
