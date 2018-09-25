@@ -290,6 +290,7 @@ class BaseMplPanel(wx.Panel):
         self.Axes.yaxis.set_minor_locator(MultipleLocator(2))
         self.Axes.xaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
         self.Axes.yaxis.grid(True, which='major')  # x坐标轴的网格使用次刻度
+        self.Axes.xaxis.set_visible(False)
         self.Axes.tick_params(labelsize=6, direction='in', grid_alpha=0.3)  # 设置坐标系文字大小
         self.Axes.set_title(self.title, size=10)
         self.update()
