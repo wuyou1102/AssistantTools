@@ -7,7 +7,6 @@ from lib.UserInterface import libs
 from wx.lib.splitter import MultiSplitterWindow
 from ObjectListView import ObjectListView, ColumnDefn, Filter
 import re
-from os import system
 from lib.Instrument import Serial
 from serial import SerialException
 

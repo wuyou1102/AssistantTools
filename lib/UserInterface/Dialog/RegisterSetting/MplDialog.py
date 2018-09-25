@@ -82,7 +82,7 @@ class MplDialog(DialogBase.DialogWindow):
     def __init_menu_bar(self):
         menu_bar = wx.MenuBar()
         menu_rssi = wx.Menu()
-        menu_bar.Append(menu_rssi, "&RSSI")
+        menu_bar.Append(menu_rssi, "&File")
         self.SetMenuBar(menu_bar)
 
 
@@ -99,7 +99,10 @@ class BaseMplPanel(wx.Panel):
         self.title = ''
 
         # 配置项』
+        self.record_flag = False
+        self.workbook = None
         self.Figure = Figure((1.6, 0.9), self.dpi)
+        self.line_name = None
         self.Axes = self.Figure.add_axes([0.05, 0.05, 0.92, 0.88])
         self.FigureCanvas = FigureCanvasWxAgg(self, -1, self.Figure)
         SettingSizer = self.__init_setting_sizer()
@@ -114,68 +117,131 @@ class BaseMplPanel(wx.Panel):
 
     def __init_setting_sizer(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        y_set_sizer = wx.BoxSizer(wx.VERTICAL)
+        y_set_sizer = self.__init_ybound_set_sizer()
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        line_check_sizer = self.__init_line_check_sizer(self.line_num)
+        button_sizer = self.__init_button_sizer()
+        right_sizer.Add(line_check_sizer, 0, wx.ALL, 0)
+        right_sizer.Add(button_sizer, 0, wx.ALL, 0)
+        sizer.Add(y_set_sizer, 0, wx.ALL, 5)
+        sizer.Add(right_sizer, 0, wx.ALL, 5)
 
+        return sizer
+
+    def __init_button_sizer(self):
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        save_button = wx.Button(self, wx.ID_ANY, u"保存截图", wx.DefaultPosition, (80, -1), 0)
+        record_button = wx.Button(self, wx.ID_ANY, u"录制数据", wx.DefaultPosition, (80, -1), 0)
+        save_button.Bind(wx.EVT_BUTTON, self.on_save)
+
+        record_button.Bind(wx.EVT_BUTTON, self.on_record)
+        sizer.Add(save_button, 0, wx.EXPAND | wx.ALL, 2)
+        sizer.Add(record_button, 0, wx.EXPAND | wx.ALL, 2)
+        return sizer
+
+    def on_record(self, event):
+        obj = event.GetEventObject()
+        if not self.record_flag:
+            if self.set_data_record_path():
+                obj.SetLabel(u"Stop录制")
+                self.record_flag = True
+        else:
+            obj.SetLabel(u"录制数据")
+            self.record_flag = False
+
+    def set_data_record_path(self):
+        dlg = wx.FileDialog(
+            self,
+            message="Save Data:",
+            defaultDir=os.getcwd(),
+            defaultFile="%s-%s.xls" % (self.get_title(), Utility.get_timestamp()),
+            wildcard="Excel (*.xls)|*.xls",
+            style=wx.FD_SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.workbook = Utility.Workbook(dlg.GetPath(), self.line_name)
+            return True
+        return False
+
+    def __init_ybound_set_sizer(self):
+        y_set_sizer = wx.BoxSizer(wx.VERTICAL)
         max_sizer = wx.BoxSizer(wx.HORIZONTAL)
         min_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ok_button = wx.Button(self, wx.ID_ANY, u"设置", wx.DefaultPosition, (50, -1), 0)
-        save_button = wx.Button(self, wx.ID_ANY, u"保存", wx.DefaultPosition, (50, -1), 0)
-        ok_button.Bind(wx.EVT_BUTTON, self.on_ok)
-        save_button.Bind(wx.EVT_BUTTON, self.on_save)
         title_max = wx.StaticText(self, wx.ID_ANY, u"Y坐标最大值：", wx.DefaultPosition, wx.DefaultSize, 0)
         title_min = wx.StaticText(self, wx.ID_ANY, u"Y坐标最小值：", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.max_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        self.min_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0)
-        line_check_sizer = self.__init_line_check_sizer(self.line_num)
-        max_sizer.Add(title_max, 0, wx.ALL, 0)
-        max_sizer.Add(self.max_tc, 0, wx.ALL, 0)
-        min_sizer.Add(title_min, 0, wx.ALL, 0)
-        min_sizer.Add(self.min_tc, 0, wx.ALL, 0)
+        self.max_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (50, -1),
+                                  wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
+        self.min_tc = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, (50, -1),
+                                  wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
+        self.max_tc.Bind(wx.EVT_TEXT_ENTER, self.update_ybound)
+        self.min_tc.Bind(wx.EVT_TEXT_ENTER, self.update_ybound)
+        max_sizer.Add(title_max, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        max_sizer.Add(self.max_tc, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        min_sizer.Add(title_min, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        min_sizer.Add(self.min_tc, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
         y_set_sizer.Add(max_sizer, 0, wx.ALL, 0)
         y_set_sizer.Add(min_sizer, 0, wx.ALL, 0)
-        sizer.Add(y_set_sizer, 0, wx.ALL, 0)
-        sizer.Add(ok_button, 0, wx.EXPAND | wx.LEFT, 5)
-        sizer.Add(line_check_sizer, 0, wx.EXPAND | wx.LEFT, 5)
-        sizer.Add(save_button, 0, wx.EXPAND | wx.LEFT, 5)
-        return sizer
+        return y_set_sizer
 
-    def __init_line_check_sizer(self, line_num):
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.line0_cb = wx.CheckBox(self, wx.ID_ANY, u"Line0", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line1_cb = wx.CheckBox(self, wx.ID_ANY, u"Line1", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line2_cb = wx.CheckBox(self, wx.ID_ANY, u"Line2", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line3_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
-        self.line0_cb.SetValue(True)
-        self.line1_cb.SetValue(True)
-        self.line2_cb.SetValue(True)
-        self.line3_cb.SetValue(True)
-        line_set_sizer1 = wx.BoxSizer(wx.VERTICAL)
-        line_set_sizer2 = wx.BoxSizer(wx.VERTICAL)
-        line_set_sizer1.Add(self.line0_cb, 0, wx.ALL, 0)
-        line_set_sizer1.Add(self.line2_cb, 0, wx.ALL, 0)
-        line_set_sizer2.Add(self.line1_cb, 0, wx.ALL, 0)
-        line_set_sizer2.Add(self.line3_cb, 0, wx.ALL, 0)
-        sizer.Add(line_set_sizer1, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
-        sizer.Add(line_set_sizer2, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
-        if line_num == 5:
-            self.line4_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
-            self.line4_cb.SetValue(True)
-            line_set_sizer3 = wx.BoxSizer(wx.VERTICAL)
-            line_set_sizer3.Add(self.line4_cb, 0, wx.ALL, 0)
-            sizer.Add(line_set_sizer3, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
-        else:
-            self.line4_cb = None
-        return sizer
-
-    def on_ok(self, event):
+    def update_ybound(self, event):
         try:
             y_max = int(self.max_tc.GetValue())
             y_min = int(self.min_tc.GetValue())
             if y_max < y_min:
                 y_min, y_max = y_max, y_min
             self.set_ybound(lower=y_min, upper=y_max)
+            Utility.AlertMsg(u"设置成功")
         except ValueError:
+            Utility.AlertError(u"输入异常: \"%s\" or \"%s\"" % (self.min_tc.GetValue(), self.max_tc.GetValue()))
             logger.error("Input Error: \"%s\" and \"%s\"" % (self.max_tc.GetValue(), self.min_tc.GetValue()))
+
+    def __init_line_check_sizer(self, line_num):
+        self.line0_cb = None
+        self.line1_cb = None
+        self.line2_cb = None
+        self.line3_cb = None
+        self.line4_cb = None
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        for x in range(line_num):
+            self.__setattr__("line%s_cb" % x,
+                             wx.CheckBox(self, wx.ID_ANY, u"Line%s" % x, wx.DefaultPosition, wx.DefaultSize, 0))
+            wx_checkbox = self.__getattribute__("line%s_cb" % x)
+            wx_checkbox.SetValue(True)
+            sizer.Add(wx_checkbox, 0, wx.ALIGN_CENTER | wx.ALL, 2)
+        # self.line0_cb = wx.CheckBox(self, wx.ID_ANY, u"Line0", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.line1_cb = wx.CheckBox(self, wx.ID_ANY, u"Line1", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.line2_cb = wx.CheckBox(self, wx.ID_ANY, u"Line2", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.line3_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
+        # self.line0_cb.SetValue(True)
+        # self.line1_cb.SetValue(True)
+        # self.line2_cb.SetValue(True)
+        # self.line3_cb.SetValue(True)
+        # line_set_sizer1 = wx.BoxSizer(wx.VERTICAL)
+        # line_set_sizer2 = wx.BoxSizer(wx.VERTICAL)
+        # line_set_sizer1.Add(self.line0_cb, 0, wx.ALL, 0)
+        # line_set_sizer1.Add(self.line2_cb, 0, wx.ALL, 0)
+        # line_set_sizer2.Add(self.line1_cb, 0, wx.ALL, 0)
+        # line_set_sizer2.Add(self.line3_cb, 0, wx.ALL, 0)
+        # sizer.Add(line_set_sizer1, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
+        # sizer.Add(line_set_sizer2, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
+        # if line_num == 5:
+        #     self.line4_cb = wx.CheckBox(self, wx.ID_ANY, u"Line3", wx.DefaultPosition, wx.DefaultSize, 0)
+        #     self.line4_cb.SetValue(True)
+        #     line_set_sizer3 = wx.BoxSizer(wx.VERTICAL)
+        #     line_set_sizer3.Add(self.line4_cb, 0, wx.ALL, 0)
+        #     sizer.Add(line_set_sizer3, 0, wx.ALIGN_CENTER | wx.LEFT, 10)
+        # else:
+        #     self.line4_cb = None
+        return sizer
+
+    # def on_ok(self, event):
+    #     try:
+    #         y_max = int(self.max_tc.GetValue())
+    #         y_min = int(self.min_tc.GetValue())
+    #         if y_max < y_min:
+    #             y_min, y_max = y_max, y_min
+    #         self.set_ybound(lower=y_min, upper=y_max)
+    #     except ValueError:
+    #         logger.error("Input Error: \"%s\" and \"%s\"" % (self.max_tc.GetValue(), self.min_tc.GetValue()))
 
     def on_save(self, event):
         dlg = wx.FileDialog(
@@ -225,6 +291,7 @@ class BaseMplPanel(wx.Panel):
         self.update()
 
     def set_checkbox_label(self, *args):
+        self.line_name = args
         self.line0_cb.SetLabel(args[0])
         self.line1_cb.SetLabel(args[1])
         self.line2_cb.SetLabel(args[2])
@@ -258,6 +325,8 @@ class RSSIPanel(BaseMplPanel):
     def refresh(self, event):
         if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
             a0, a1, a2, a3 = self.obj.next()
+            if self.record_flag:
+                self.workbook.write_row(a0[-1],a1[-1],a2[-1],a3[-1])
             x_max = len(a0) if len(a0) > 80 else 80
             x_min = x_max - 80
             self.Axes.set_xbound(lower=x_min, upper=x_max)
@@ -309,6 +378,8 @@ class SNRPanel(BaseMplPanel):
         a1 = self.user1.next()
         a2 = self.user2.next()
         a3 = self.user3.next()
+        if self.record_flag:
+            self.workbook.write_row(a0[-1], a1[-1], a2[-1], a3[-1])
         x_max = len(a0) if len(a0) > 80 else 80
         x_min = x_max - 80
         self.Axes.set_xbound(lower=x_min, upper=x_max)
@@ -373,6 +444,8 @@ class BLERPanel(BaseMplPanel):
         a2 = self.user2.next()
         a3 = self.user3.next()
         br = self.br.next()
+        if self.record_flag:
+            self.workbook.write_row(a0[-1], a1[-1], a2[-1], a3[-1],br[-1])
         x_max = len(a0) if len(a0) > 80 else 80
         x_min = x_max - 80
         self.Axes.set_xbound(lower=x_min, upper=x_max)
