@@ -97,8 +97,12 @@ class BaseMplPanel(wx.Panel):
         self.dpi = 100
         self.facecolor = '#FEF9E7'
         self.title = ''
+        self.data_limit_length = 80
+        self.__time_interval = 1000
 
         # 配置项』
+        self.x_limit_range = numpy.arange(self.data_limit_length)
+        self.blank_array = numpy.array([])
         self.record_flag = False
         self.workbook = None
         self.Figure = Figure((1.6, 0.9), self.dpi)
@@ -113,7 +117,7 @@ class BaseMplPanel(wx.Panel):
         self.Update()
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.refresh, self.timer)
-        self.timer.Start(1000)
+        self.timer.Start(self.__time_interval)
 
     def __init_setting_sizer(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -143,7 +147,7 @@ class BaseMplPanel(wx.Panel):
         obj = event.GetEventObject()
         if not self.record_flag:
             if self.set_data_record_path():
-                obj.SetLabel(u"Stop录制")
+                obj.SetLabel(u"停止录制")
                 self.record_flag = True
         else:
             obj.SetLabel(u"录制数据")
@@ -299,6 +303,21 @@ class BaseMplPanel(wx.Panel):
         if self.line4_cb and args[4]:
             self.line4_cb.SetLabel(args[4])
 
+    def refresh_line(self, wx_checkbox, line, obj):
+        if wx_checkbox.IsChecked():
+            data = obj.next()
+            if len(data) < self.data_limit_length:
+                line.set_xdata(numpy.arange(len(data)))
+                line.set_ydata(numpy.array(data))
+            else:
+                line.set_xdata(self.x_limit_range)
+                line.set_ydata(numpy.array(data[-80:]))
+            return data[-1]
+        else:
+            line.set_xdata(self.blank_array)
+            line.set_ydata(self.blank_array)
+            return u"N/A"
+
 
 class RSSIPanel(BaseMplPanel):
     def __init__(self, parent, obj):
@@ -325,25 +344,49 @@ class RSSIPanel(BaseMplPanel):
     def refresh(self, event):
         if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
             a0, a1, a2, a3 = self.obj.next()
+            a0 = self.refresh_line(wx_checkbox=self.line0_cb, line=self._line0, data=a0)
+            a1 = self.refresh_line(wx_checkbox=self.line1_cb, line=self._line1, data=a1)
+            a2 = self.refresh_line(wx_checkbox=self.line2_cb, line=self._line2, data=a2)
+            a3 = self.refresh_line(wx_checkbox=self.line3_cb, line=self._line3, data=a3)
+            self.update()
             if self.record_flag:
-                self.workbook.write_row(a0[-1],a1[-1],a2[-1],a3[-1])
-            x_max = len(a0) if len(a0) > 80 else 80
-            x_min = x_max - 80
-            self.Axes.set_xbound(lower=x_min, upper=x_max)
+                self.workbook.write_row(a0, a1, a2, a3)
         else:
-            return
-        if self.line0_cb.IsChecked():
-            self._line0.set_xdata(numpy.arange(len(a0)))
-            self._line0.set_ydata(numpy.array(a0))
-        if self.line1_cb.IsChecked():
-            self._line1.set_xdata(numpy.arange(len(a1)))
-            self._line1.set_ydata(numpy.array(a1))
-        if self.line2_cb.IsChecked():
-            self._line2.set_xdata(numpy.arange(len(a2)))
-            self._line2.set_ydata(numpy.array(a2))
-        if self.line3_cb.IsChecked():
-            self._line3.set_xdata(numpy.arange(len(a3)))
-            self._line3.set_ydata(numpy.array(a3))
+            self.set_blank_line()
+            if self.record_flag:
+                self.workbook.write_row(u"N/A", u"N/A", u"N/A", u"N/A")
+
+        # if self.line0_cb.IsChecked():
+        #     self._line0.set_xdata(numpy.arange(len(a0)))
+        #     self._line0.set_ydata(numpy.array(a0))
+        # if self.line1_cb.IsChecked():
+        #     self._line1.set_xdata(numpy.arange(len(a1)))
+        #     self._line1.set_ydata(numpy.array(a1))
+        # if self.line2_cb.IsChecked():
+        #     self._line2.set_xdata(numpy.arange(len(a2)))
+        #     self._line2.set_ydata(numpy.array(a2))
+        # if self.line3_cb.IsChecked():
+        #     self._line3.set_xdata(numpy.arange(len(a3)))
+        #     self._line3.set_ydata(numpy.array(a3))
+
+    def refresh_line(self, wx_checkbox, line, data):
+        if wx_checkbox.IsChecked():
+            if len(data) < self.data_limit_length:
+                line.set_xdata(numpy.arange(len(data)))
+                line.set_ydata(numpy.array(data))
+            else:
+                line.set_xdata(self.x_limit_range)
+                line.set_ydata(numpy.array(data[-80:]))
+            return data[-1]
+        else:
+            line.set_xdata(self.blank_array)
+            line.set_ydata(self.blank_array)
+            return data[-1]
+
+    def set_blank_line(self):
+        for line in [self._line0, self._line1, self._line2, self._line3]:
+            line.set_xdata(self.blank_array)
+            line.set_ydata(self.blank_array)
         self.update()
 
 
@@ -370,31 +413,36 @@ class SNRPanel(BaseMplPanel):
         return None
 
     def refresh(self, event):
-        if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
-            pass
-        else:
-            return
-        a0 = self.user0.next()
-        a1 = self.user1.next()
-        a2 = self.user2.next()
-        a3 = self.user3.next()
+        # if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
+        #     pass
+        # else:
+        #     return
+        # a0 = self.user0.next()
+        # a1 = self.user1.next()
+        # a2 = self.user2.next()
+        # a3 = self.user3.next()
+
+        # x_max = len(a0) if len(a0) > 80 else 80
+        # x_min = x_max - 80
+        # self.Axes.set_xbound(lower=x_min, upper=x_max)
+        # if self.line0_cb.IsChecked():
+        #     self._line0.set_xdata(numpy.arange(len(a0)))
+        #     self._line0.set_ydata(numpy.array(a0))
+        # if self.line1_cb.IsChecked():
+        #     self._line1.set_xdata(numpy.arange(len(a1)))
+        #     self._line1.set_ydata(numpy.array(a1))
+        # if self.line2_cb.IsChecked():
+        #     self._line2.set_xdata(numpy.arange(len(a2)))
+        #     self._line2.set_ydata(numpy.array(a2))
+        # if self.line3_cb.IsChecked():
+        #     self._line3.set_xdata(numpy.arange(len(a3)))
+        #     self._line3.set_ydata(numpy.array(a3))
+        a0 = self.refresh_line(wx_checkbox=self.line0_cb, line=self._line0, obj=self.user0)
+        a1 = self.refresh_line(wx_checkbox=self.line1_cb, line=self._line1, obj=self.user1)
+        a2 = self.refresh_line(wx_checkbox=self.line2_cb, line=self._line2, obj=self.user2)
+        a3 = self.refresh_line(wx_checkbox=self.line3_cb, line=self._line3, obj=self.user3)
         if self.record_flag:
-            self.workbook.write_row(a0[-1], a1[-1], a2[-1], a3[-1])
-        x_max = len(a0) if len(a0) > 80 else 80
-        x_min = x_max - 80
-        self.Axes.set_xbound(lower=x_min, upper=x_max)
-        if self.line0_cb.IsChecked():
-            self._line0.set_xdata(numpy.arange(len(a0)))
-            self._line0.set_ydata(numpy.array(a0))
-        if self.line1_cb.IsChecked():
-            self._line1.set_xdata(numpy.arange(len(a1)))
-            self._line1.set_ydata(numpy.array(a1))
-        if self.line2_cb.IsChecked():
-            self._line2.set_xdata(numpy.arange(len(a2)))
-            self._line2.set_ydata(numpy.array(a2))
-        if self.line3_cb.IsChecked():
-            self._line3.set_xdata(numpy.arange(len(a3)))
-            self._line3.set_ydata(numpy.array(a3))
+            self.workbook.write_row(a0, a1, a2, a3)
         self.update()
 
     def __init_plot(self, linestyle='--'):
@@ -435,35 +483,41 @@ class BLERPanel(BaseMplPanel):
         return None
 
     def refresh(self, event):
-        if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
-            pass
-        else:
-            return
-        a0 = self.user0.next()
-        a1 = self.user1.next()
-        a2 = self.user2.next()
-        a3 = self.user3.next()
-        br = self.br.next()
+        # if self.line0_cb.IsChecked() or self.line1_cb.IsChecked() or self.line2_cb.IsChecked() or self.line3_cb.IsChecked():
+        #     pass
+        # else:
+        #     return
+        # a0 = self.user0.next()
+        # a1 = self.user1.next()
+        # a2 = self.user2.next()
+        # a3 = self.user3.next()
+        # br = self.br.next()
+
+        # x_max = len(a0) if len(a0) > 80 else 80
+        # x_min = x_max - 80
+        # self.Axes.set_xbound(lower=x_min, upper=x_max)
+        a0 = self.refresh_line(wx_checkbox=self.line0_cb, line=self._line0, obj=self.user0)
+        a1 = self.refresh_line(wx_checkbox=self.line1_cb, line=self._line1, obj=self.user1)
+        a2 = self.refresh_line(wx_checkbox=self.line2_cb, line=self._line2, obj=self.user2)
+        a3 = self.refresh_line(wx_checkbox=self.line3_cb, line=self._line3, obj=self.user3)
+        br = self.refresh_line(wx_checkbox=self.line4_cb, line=self._line4, obj=self.br)
         if self.record_flag:
-            self.workbook.write_row(a0[-1], a1[-1], a2[-1], a3[-1],br[-1])
-        x_max = len(a0) if len(a0) > 80 else 80
-        x_min = x_max - 80
-        self.Axes.set_xbound(lower=x_min, upper=x_max)
-        if self.line0_cb.IsChecked():
-            self._line0.set_xdata(numpy.arange(len(a0)))
-            self._line0.set_ydata(numpy.array(a0))
-        if self.line1_cb.IsChecked():
-            self._line1.set_xdata(numpy.arange(len(a1)))
-            self._line1.set_ydata(numpy.array(a1))
-        if self.line2_cb.IsChecked():
-            self._line2.set_xdata(numpy.arange(len(a2)))
-            self._line2.set_ydata(numpy.array(a2))
-        if self.line3_cb.IsChecked():
-            self._line3.set_xdata(numpy.arange(len(a3)))
-            self._line3.set_ydata(numpy.array(a3))
-        if self.line4_cb.IsChecked():
-            self._line4.set_xdata(numpy.arange(len(br)))
-            self._line4.set_ydata(numpy.array(br))
+            self.workbook.write_row(a0, a1, a2, a3, br)
+        # if self.line0_cb.IsChecked():
+        #     self._line0.set_xdata(numpy.arange(len(a0)))
+        #     self._line0.set_ydata(numpy.array(a0))
+        # if self.line1_cb.IsChecked():
+        #     self._line1.set_xdata(numpy.arange(len(a1)))
+        #     self._line1.set_ydata(numpy.array(a1))
+        # if self.line2_cb.IsChecked():
+        #     self._line2.set_xdata(numpy.arange(len(a2)))
+        #     self._line2.set_ydata(numpy.array(a2))
+        # if self.line3_cb.IsChecked():
+        #     self._line3.set_xdata(numpy.arange(len(a3)))
+        #     self._line3.set_ydata(numpy.array(a3))
+        # if self.line4_cb.IsChecked():
+        #     self._line4.set_xdata(numpy.arange(len(br)))
+        #     self._line4.set_ydata(numpy.array(br))
         self.update()
 
     def __init_plot(self, linestyle='--'):
