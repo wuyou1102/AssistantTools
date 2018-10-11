@@ -9,7 +9,10 @@ import logging
 from matplotlib.ticker import MultipleLocator
 from lib import Utility
 import os
+from lib.ProtocolStack.Configuration import freq_point_config
+from lib.Config import Instrument
 
+reg = Instrument.get_register()
 matplotlib.use('WXAgg')
 logger = logging.getLogger(__name__)
 
@@ -23,19 +26,23 @@ class MplDialog(DialogBase.DialogWindow):
         self.__init_menu_bar()
 
         MainSizer = wx.BoxSizer(wx.HORIZONTAL)
+        ViewSizer = wx.BoxSizer(wx.VERTICAL)
         LeftSizer = wx.BoxSizer(wx.VERTICAL)
         CenterSizer = wx.BoxSizer(wx.VERTICAL)
         RightSizer = wx.BoxSizer(wx.VERTICAL)
+        self.freq_panel = self.__init_freq_panel()
         self.__init_rssi_mpl(rssi)
         self.__init_snr_mpl(snr)
         self.__init_bler_mpl(bler)
+        ViewSizer.Add(self.freq_panel, 1, wx.EXPAND | wx.ALL, 0)
         LeftSizer.Add(self.user0, 1, wx.EXPAND | wx.ALL, 0)
         LeftSizer.Add(self.user2, 1, wx.EXPAND | wx.ALL, 0)
         CenterSizer.Add(self.user1, 1, wx.EXPAND | wx.ALL, 0)
         CenterSizer.Add(self.user3, 1, wx.EXPAND | wx.ALL, 0)
         RightSizer.Add(self.snr, 1, wx.EXPAND | wx.ALL, 0)
         RightSizer.Add(self.bler, 1, wx.EXPAND | wx.ALL, 0)
-        self.mpl_list = [self.user0, self.user1, self.user2, self.user3, self.snr, self.bler]
+        self.mpl_list = [self.user0, self.user1, self.user2, self.user3, self.snr, self.bler, self.freq_panel]
+        MainSizer.Add(ViewSizer, 0, wx.EXPAND | wx.ALL, 0)
         MainSizer.Add(LeftSizer, 1, wx.EXPAND | wx.ALL, 0)
         MainSizer.Add(CenterSizer, 1, wx.EXPAND | wx.ALL, 0)
         MainSizer.Add(RightSizer, 1, wx.EXPAND | wx.ALL, 0)
@@ -67,16 +74,16 @@ class MplDialog(DialogBase.DialogWindow):
     def __init_bler_mpl(self, bler_objects):
         self.bler = BLERPanel(self, bler_objects)
 
+    def __init_freq_panel(self):
+        panel = FreqPointPanel(self)
+        return panel
+
     def Show(self, show=1):
         super(DialogBase.DialogWindow, self).Show(show=show)
 
     def Destroy(self):
-        self.user0.close_timer()
-        self.user1.close_timer()
-        self.user2.close_timer()
-        self.user3.close_timer()
-        self.snr.close_timer()
-        self.bler.close_timer()
+        for mpl in self.mpl_list:
+            mpl.close_timer()
         return super(DialogBase.DialogWindow, self).Destroy()
 
     def __init_menu_bar(self):
@@ -107,7 +114,7 @@ class BaseMplPanel(wx.Panel):
         self.workbook = None
         self.Figure = Figure((1.6, 0.9), self.dpi)
         self.line_name = None
-        self.Axes = self.Figure.add_axes([0.05, 0.05, 0.92, 0.88])
+        self.Axes = self.Figure.add_axes([0.07, 0.05, 0.92, 0.88])
         self.FigureCanvas = FigureCanvasWxAgg(self, -1, self.Figure)
         SettingSizer = self.__init_setting_sizer()
         MplSizer.Add(self.FigureCanvas, 1, wx.EXPAND | wx.ALL, 0)
@@ -538,3 +545,82 @@ class BLERPanel(BaseMplPanel):
     def __init_line_check_szer(self):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         return sizer
+
+
+class FreqPointPanel(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=(130, -1),
+                          style=wx.TAB_TRAVERSAL)
+
+        self.freq_objs = list()
+        MainSizer = wx.BoxSizer(wx.VERTICAL)
+        FreqSizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, u"频点"), wx.VERTICAL)
+        for config in freq_point_config:
+            obj = FreqPointSizer(self, config)
+            FreqSizer.Add(obj.get_sizer(), 0, wx.EXPAND | wx.ALL, 1)
+            self.freq_objs.append(obj)
+        MainSizer.Add(FreqSizer, 0, wx.EXPAND | wx.LEFT, 2)
+        self.SetSizer(MainSizer)
+        self.Layout()
+        self.__time_interval = 1000
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.refresh, self.timer)
+        self.timer.Start(self.__time_interval)
+
+    def refresh(self, event):
+        for obj in self.freq_objs:
+            obj.refresh()
+
+    def close_timer(self):
+        self.timer.Stop()
+
+
+class FreqPointSizer(object):
+    def __init__(self, parent, item):
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.item = item
+        self.multi_2_4 = 30
+        self.multi_5_8 = 60
+        self.freq_pow = 16777216.0
+        self.font = wx.Font(10, wx.MODERN, wx.NORMAL, wx.BOLD, underline=True)
+        title = wx.StaticText(parent, wx.ID_ANY, item['title'], wx.DefaultPosition, wx.DefaultSize, 0)
+        title.SetFont(self.font)
+        tx_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        rx_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        tx = wx.StaticText(parent, wx.ID_ANY, u"TX:", wx.DefaultPosition, wx.DefaultSize, 0)
+        rx = wx.StaticText(parent, wx.ID_ANY, u"RX:", wx.DefaultPosition, wx.DefaultSize, 0)
+
+        self.tx_tc = wx.TextCtrl(parent, wx.ID_ANY, '', wx.DefaultPosition, wx.DefaultSize,
+                                 wx.TE_CENTER | wx.TE_READONLY)
+        self.rx_tc = wx.TextCtrl(parent, wx.ID_ANY, '', wx.DefaultPosition, wx.DefaultSize,
+                                 wx.TE_CENTER | wx.TE_READONLY)
+        tx_sizer.Add(tx, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        tx_sizer.Add(self.tx_tc, 1, wx.EXPAND | wx.LEFT, 5)
+        rx_sizer.Add(rx, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 0)
+        rx_sizer.Add(self.rx_tc, 1, wx.EXPAND | wx.LEFT, 5)
+        self.tx_address = item['tx']
+        self.rx_address = item['rx']
+
+        self.sizer.Add(title, 0, wx.TOP | wx.BOTTOM, 3)
+        self.sizer.Add(tx_sizer, 0, wx.LEFT, 5)
+        self.sizer.Add(rx_sizer, 0, wx.LEFT, 5)
+
+    def get_sizer(self):
+        return self.sizer
+
+    def refresh(self):
+        self.__refresh(self.rx_address, self.rx_tc)
+        self.__refresh(self.tx_address, self.tx_tc)
+
+    def __refresh(self, address, text_ctrl):
+        if not address:
+            return
+        value = reg.Get(address=address, reverse=-1)
+        d3d1 = value[0:6]
+        d0 = value[6:].upper()
+        rf_multi = self.multi_2_4 if d0 in ['4B', '4C', '4D', '4E', '4F', '50', '51', '52', '53'] else self.multi_5_8
+        d1d3 = Utility.swap_to_d1d3(d3d1)
+        d1d3 = int(d1d3, 16)
+        d0 = int(d0, 16)
+        f = round((d1d3 / self.freq_pow + d0) * rf_multi, 2)
+        text_ctrl.SetValue(str(f))
