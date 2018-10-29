@@ -262,6 +262,7 @@ class UserInterleave(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
+        self.bandwidth_cfg = self.get_bandwidth_config(item['name'])
         title_name = wx.StaticText(panel, wx.ID_ANY, item["title"], wx.DefaultPosition, wx.DefaultSize, 0)
         t = ['12', '24', '48', '96']
         m = ['12', '24', '48']
@@ -317,14 +318,36 @@ class UserInterleave(ObjectBase):
     def get_sizer(self):
         return self.sizer
 
+    @staticmethod
+    def get_bandwidth_config(name):
+        lst = name.split('_')
+        user = lst[0]
+        address = '%s_address' % lst[2]
+        for cfg in Configuration.user_bandwidth_config:
+            if user in cfg['name']:
+                return cfg[address]
+        raise KeyError
+
+    def is40m(self):
+        address, start, end = self.bandwidth_cfg
+        value = Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+        return value == '101'
+
     def __formula(self):
         symbol_num = self.total_choice.GetStringSelection()
         if symbol_num:
-            symbol_num = int(symbol_num)
-            time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time + self.gap_time
-            time_reg = int(time_ns / self.precision)
-            b = bin(time_reg)[2:]
-            return b
+            if self.is40m():
+                symbol_num = int(symbol_num)
+                time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time / 2 + self.gap_time
+                time_reg = int(time_ns / self.precision)
+                b = bin(time_reg)[2:]
+                return b
+            else:
+                symbol_num = int(symbol_num)
+                time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time + self.gap_time
+                time_reg = int(time_ns / self.precision)
+                b = bin(time_reg)[2:]
+                return b
         return None
 
     def __update_time(self):
@@ -333,7 +356,6 @@ class UserInterleave(ObjectBase):
         if value:
             if "send" in name:
                 self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[0, 1])
-
             else:
                 self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[2, 3])
                 self.__replace_bytes(address=0x606800B4, need_replace=value, pos=[0, 1])
@@ -724,7 +746,7 @@ class UserBandwidthSetting(ObjectBase):
         ObjectBase.__init__(self, item=item)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.item = item
-        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz']  # , '40MHz'
+        bandwidth = ['2.5MHz', '5MHz', '10MHz', '20MHz', '40MHz']  # , '40MHz'
         # TODO
         # ERROR 增加不匹配的情况
         self.dict_mapping_bandwidth = {
@@ -732,8 +754,20 @@ class UserBandwidthSetting(ObjectBase):
             u'5MHz': '010',
             u'10MHz': '011',
             u'20MHz': '100',
-            # u'40MHz': '101',
+            u'40MHz': '101',
         }
+        self.dict_mapping_total = {
+            '001': 12,
+            '011': 24,
+            '100': 48,
+            '101': 96,
+        }
+        self.cp_len = 1.125
+        self.one_symbol_time = 1024 * 1000 / 11.2
+        self.gap_time = 300 * 1000
+        self.precision = 64 * 5
+        self.total_cfg = self.get_total_cfg()
+
         self.recv_user = item['recv_address']
         self.send_user = item['send_address']
         self.dict_bandwidth = {v: k for k, v in self.dict_mapping_bandwidth.items()}
@@ -750,12 +784,6 @@ class UserBandwidthSetting(ObjectBase):
     def refresh(self):
         self.__refresh(wx_choice=self.recv_choice, config=self.recv_user)
         self.__refresh(wx_choice=self.send_choice, config=self.send_user)
-        # rx_address, rx_start, rx_end = self.recv_user
-        # tx_address, tx_start, tx_end = self.send_user
-        # rx_value = Utility.convert2bin(reg.GetByte(rx_address))[7 - rx_end:8 - rx_start]
-        # tx_value = Utility.convert2bin(reg.GetByte(tx_address))[7 - tx_end:8 - tx_start]
-        # self.SetStringSelection(selection=self.dict_bandwidth.get(rx_value, None), wx_choice=self.recv_choice)
-        # self.SetStringSelection(selection=self.dict_bandwidth.get(tx_value, None), wx_choice=self.send_choice)
 
     def __refresh(self, wx_choice, config):
         address, start, end = config
@@ -772,6 +800,7 @@ class UserBandwidthSetting(ObjectBase):
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
         self.__refresh(wx_choice=self.recv_choice, config=self.recv_user)
+        self.__update_time('recv')
 
     def update_send(self, event):
         change_value = self.dict_mapping_bandwidth[self.send_choice.GetStringSelection()]
@@ -780,6 +809,71 @@ class UserBandwidthSetting(ObjectBase):
         byte = Utility.replace_bits(byte=byte, need_replace=change_value, start=start)
         reg.SetByte(address=address, byte=int(byte, 2))
         self.__refresh(wx_choice=self.send_choice, config=self.send_user)
+        self.__update_time('send')
+
+    def get_total_cfg(self):
+        name = self.item['name']
+        user = name.split('_')[0]
+        config = dict()
+        for cfg in Configuration.user_interleave_config:
+            if '%s_interleave_send' % user == cfg['name']:
+                config['send'] = cfg['total']
+            elif '%s_interleave_recv' % user == cfg['name']:
+                config['recv'] = cfg['total']
+        return config
+
+    def get_total_value(self, _type):
+        address, start, end = self.total_cfg[_type]
+        value = Utility.convert2bin(reg.GetByte(address))[7 - end:8 - start]
+        return self.dict_mapping_total[value]
+
+    def is40m(self, _type):
+        if _type == "send":
+            return self.send_choice.GetStringSelection() == "40MHz"
+        elif _type == "recv":
+            return self.recv_choice.GetStringSelection() == "40MHz"
+        raise KeyError
+
+    def __formula(self, _type):
+        symbol_num = self.get_total_value(_type)
+        if symbol_num:
+            if self.is40m(_type):
+                symbol_num = int(symbol_num)
+                time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time / 2 + self.gap_time
+                time_reg = int(time_ns / self.precision)
+                b = bin(time_reg)[2:]
+                return b
+            else:
+                symbol_num = int(symbol_num)
+                time_ns = (self.cp_len * (symbol_num + 2) + 2) * self.one_symbol_time + self.gap_time
+                time_reg = int(time_ns / self.precision)
+                b = bin(time_reg)[2:]
+                return b
+        return None
+
+    def __update_time(self, _type):
+        value = self.__formula(_type)
+        if value:
+            if "send" == _type:
+                self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[0, 1])
+            else:
+                self.__replace_bytes(address=0x606800A4, need_replace=value, pos=[2, 3])
+                self.__replace_bytes(address=0x606800B4, need_replace=value, pos=[0, 1])
+
+    def __replace_bytes(self, address, need_replace, pos):
+        A1 = int(need_replace[:-8], 2)
+        A0 = int(need_replace[-8:], 2)
+
+        data = reg.GetBytes(address=address, reverse=1)
+        if data:
+            tmp = list(data)
+            tmp[pos[0]] = chr(A0)
+            tmp[pos[1]] = chr(A1)
+            string = ''
+            for x in tmp[::-1]:
+                string += binascii.b2a_hex(x)
+            return reg.Set(address=address, data=string)
+        return False
 
 
 # class UserBandwidthSetting(ObjectBase):
